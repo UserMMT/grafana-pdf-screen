@@ -1,9 +1,17 @@
-Grafana PDF Proxy
+Grafana PDF Screen
 =================
 
 Connects to a Grafana instance and renders a PDF for the given URL.
 
 This work is based on [a gist by svet-b](https://gist.github.com/svet-b/1ad0656cd3ce0e1a633e16eb20f66425).
+using this reporting method allow you to copy dashboard panel data after pdf rendering
+
+additionnal feature
+Long dashboard supported
+custom Timeout
+Commandline Argument
+.env file support
+
 
 Installation
 ------------
@@ -54,6 +62,18 @@ and the path to the dashboard is `/d/GN7k2MI3D/nodes?orgId=1`):
 ```
 curl -o /tmp/test.pdf 'http://[::1]:38269/d/GN7k2MI3D/nodes?orgId=1'
 ```
+Modification notes
+```
+Fix long dashboard [scroll]
+adding custom Timeout
+default variable value
 
+
+```
+TODO
+```
+Save_report_locally
+
+```
 License
 -------
