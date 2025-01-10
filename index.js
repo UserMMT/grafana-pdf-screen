@@ -8,7 +8,6 @@ const fs = require("fs")
 // import {Readable} from 'stream';
 var browser=null;
 const widthGF= Number(process.env.GRAFANA_PDF_WIDTH || 1920) ;
-// console.log(widthGF);
 
 async function initBrowser(options) {
   const {
@@ -27,12 +26,16 @@ async function initBrowser(options) {
   browser = await puppeteer.launch({
     executablePath,
     headless: true,
-    ignoreHTTPSErrors: true,
-    args: ["--no-sandbox",
-        "--disable-setuid-sandbox","--disable-dev-shm-usage"],
+    // ignoreHTTPSErrors: true,
+    args: [
+      "--ignore-certificate-errors",
+      "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage"
+      ],
     timeout:0
   });
-  const pageDefault = await browser.newPage();
+  // const pageDefault = await browser.newPage();
 }
 /**
  * Create a readable PDF stream by fetching the given URL with puppeteer.
@@ -53,6 +56,7 @@ async function streamPdf(url, options) {
     width =widthGF,
     height = parseInt(1200 * Math.sqrt(2)),
   } = options;
+  
 /*
   console.log('Launching chromium:', executablePath || '(puppeteer builtin)');
   const browser = await puppeteer.launch({
@@ -78,6 +82,7 @@ async function streamPdf(url, options) {
 
   console.log('Fetching url');
   if (backendNoLogin==0){
+    
   if (backendApiKey) {
     await page.setExtraHTTPHeaders({ 'Authorization': "Bearer "+ backendApiKey  });  
     }
@@ -86,12 +91,15 @@ async function streamPdf(url, options) {
     await page.setExtraHTTPHeaders({ 'Authorization': authHeader });
   }
 }
-
-  await page.goto(url, { waitUntil: 'networkidle0' });
-
+await page.goto(url, { waitUntil: 'networkidle0' });
+// const response= await page.goto(url, { waitUntil: 'networkidle0' });
+//   const chain = response.request().redirectChain();
+// console.log(chain.length); // 1
+// console.log(chain); // 'http://example.com'
   // Hide all panel description (top-left "i") pop-up handles and, all panel
   // resize handles. Annoyingly, it seems you can't concatenate the two object
   // collections into one.
+ /*
   await page.evaluate(() => {
     const infoCorners = document.getElementsByClassName('panel-info-corner');
     for (el of infoCorners) { el.hidden = true; };
@@ -99,7 +107,7 @@ async function streamPdf(url, options) {
     for (el of resizeHandles) { el.hidden = true; };
 
   }); 
-  
+ */ 
   // var dashboard_name = getTitle();
  var dashboard_name = await page.evaluate(() => {
   // let title_page=document.getElementsByClassName('css-1spogwh')[0] 
@@ -109,17 +117,19 @@ async function streamPdf(url, options) {
       console.log(dashboard_name);
      dashboard_name=dashboard_name.replaceAll(' ','_');
 	// Get the height of the main canvas, and add a margin
-     var height_px = await page.evaluate(() => {
-      return document.getElementsByClassName('react-grid-layout')[0].getBoundingClientRect().bottom;
-    }) + 20;
+    //  var height_px = await page.evaluate(() => {
+    //   return document.getElementsByClassName('react-grid-layout')[0].getBoundingClientRect().bottom;
+    // }) + 20;
 
     // == auto scroll to the bottom to solve long grafana dashboard start
     async function autoScroll(page) {
-      await page.evaluate(async () => {
-        await new Promise((resolve, reject) => {
+      return await page.evaluate(async () => {
+       return await new Promise((resolve, reject) => {
           var totalHeight = 0;
           var distance = 100;
           var height_px = document.getElementsByClassName('react-grid-layout')[0].getBoundingClientRect().bottom;
+          // console.log(height_px);
+          
           var timer = setInterval(() => {
             var scrollHeight = height_px;
 
@@ -135,38 +145,64 @@ async function streamPdf(url, options) {
 
             totalHeight += distance;
 
-            console.log('totalHeight', totalHeight)
+            // console.log('totalHeight', totalHeight)
 
             if (totalHeight >= scrollHeight) {
               clearInterval(timer);
-              resolve();
+              resolve(totalHeight);
             }
           }, 300);
         });
       });
+      
     }
 
-    await autoScroll(page);
+    var  totalHeight= await autoScroll(page);
     // == auto scroll to the bottom to solve long grafana dashboard end
+   var height_px = await page.evaluate(() => {
+      return document.getElementsByClassName('react-grid-layout')[0].getBoundingClientRect().bottom;
+    });
+ /*
+  console.log(await page.evaluate(() => {
 
-
-  console.log('Rendering PDF');
+      return {
+        width:document.getElementsByClassName("css-1vaubhh")[0].offsetWidth,
+        h1:document.querySelector(".react-grid-layout")
+            .getBoundingClientRect().bottom,
+            h2:document.getElementsByClassName('react-grid-layout')[0].getBoundingClientRect().bottom
+      }
+    }));
+*/
+  console.log('Rendering PDF :TotalHeight '+Number(totalHeight)+ " Height_px : " +height_px<300 ? height_px*25:height_px," and ", height);
   // var pdfOutput = (await page.createPDFStream({
   const fileLocation = 'tmp/'+ ((dashboard_name+'__'+dateFormat(new Date())+'.pdf').replaceAll("/","_")) ;
   (await page.pdf({
-    width: width +'px',
-    height: height_px+'px',
-    // scale: 1,
+    path : fileLocation,
+    width: widthGF + 'px',
+    // width: width +'px',
+    // height: height+'px',
+    // height: height_px*0.75+'cm',
+    height: max( Number(totalHeight),totalHeight) +"px",
+    //height: height_px<300 ? height_px*25:height_px+'px',
+    scale: 1,
+    // format: process.env.GRAFANA_PDF_FORMAT || "A4",
     // format: 'tabloid',
-    displayHeaderFooter: false,
-    // margin: {
+    // displayHeaderFooter: false,
+    margin: {
+      top: "10mm",
+      right: "10mm",
+      bottom: "10mm",
+      left: "10mm",
+    },
+    //  margin: {
     //   top: 0,
     //   right: 0,
     //   bottom: 0,
     //   left: 0,
     // },
-    landscape:true,
-    path : fileLocation,
+    // landscape:true,
+    
+    
     printBackground: true,
   }))
   
