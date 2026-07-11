@@ -9,9 +9,9 @@ const jobsDb = require('../db/jobs');
 router.get('/', (req, res) => {
   const jobId = req.query.job ? Number(req.query.job) : null;
   const status = req.query.status || null;
-  const runs = jobId ? runsDb.listByJob(jobId) : runsDb.listAll({ status });
+  const runs = runsDb.listAll({ jobId, status });
   const job = jobId ? jobsDb.getById(jobId) : null;
-  res.render('runs/list', { runs, job, status });
+  res.render('runs/list', { runs, job, status, jobId, jobs: jobsDb.list() });
 });
 
 router.get('/:id', (req, res) => {

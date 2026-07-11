@@ -1,0 +1,43 @@
+<%
+function crumbsUrl(list) { return '/browse/' + server.id + (list.length ? '?crumbs=' + encodeURIComponent(JSON.stringify(list)) : ''); }
+function dashUrl(uid) { return '/browse/' + server.id + '/dashboard/' + uid + (crumbs.length ? '?crumbs=' + encodeURIComponent(JSON.stringify(crumbs)) : ''); }
+%>
+<%- include('../partials/header', { title: 'Browse — ' + server.name, active: 'browse' }) %>
+<div class="toolbar">
+  <h1>
+    <a href="<%= crumbsUrl([]) %>">Browse</a> / <%= server.name %>
+    <% crumbs.forEach(function(c, i) { %> / <a href="<%= crumbsUrl(crumbs.slice(0, i + 1)) %>"><%= c.title %></a><% }) %>
+  </h1>
+</div>
+
+<form class="filter-bar" method="get" action="/browse/<%= server.id %>">
+  <input type="text" name="q" placeholder="Search all dashboards..." value="<%= q %>">
+  <button class="btn small" type="submit">Search</button>
+  <% if (q) { %><a class="btn small" href="<%= crumbsUrl(crumbs) %>">Clear search</a><% } %>
+</form>
+
+<% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+<% if (q) { %>
+  <h3>Search results for "<%= q %>"</h3>
+<% } else if (folders.length) { %>
+  <h3>Folders</h3>
+  <table>
+    <tbody>
+      <% folders.forEach(function(f) { %>
+      <tr><td><a href="<%= crumbsUrl(crumbs.concat([{ uid: f.uid, title: f.title }])) %>">📁 <%= f.title %></a></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<h3>Dashboards<% if (!q && !currentFolder) { %> in this folder<% } %></h3>
+<table>
+  <tbody>
+    <% dashboards.forEach(function(d) { %>
+    <tr><td><a href="<%= dashUrl(d.uid) %>"><%= d.title %></a><% if (d.folderTitle && q) { %> <span class="hint">in <%= d.folderTitle %></span><% } %></td></tr>
+    <% }) %>
+    <% if (!dashboards.length) { %><tr><td class="muted">No dashboards here.</td></tr><% } %>
+  </tbody>
+</table>
+<%- include('../partials/footer') %>

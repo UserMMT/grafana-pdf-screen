@@ -2,28 +2,7 @@
 const client = require('./client');
 const { getTemplatingDefaults, interpolateQueryTarget } = require('./interpolate');
 const { framesToRows, rowsToCsv } = require('./dataframe');
-
-class PanelNotFoundError extends Error {
-  constructor(panelId) {
-    super(`panel ${panelId} not found on dashboard`);
-    this.name = 'PanelNotFoundError';
-    this.panelId = panelId;
-  }
-}
-
-function findPanel(dashboardJson, panelId) {
-  const panels = dashboardJson?.dashboard?.panels || [];
-  const flat = [];
-  for (const p of panels) {
-    flat.push(p);
-    if (p.type === 'row' && Array.isArray(p.panels)) {
-      flat.push(...p.panels);
-    }
-  }
-  const panel = flat.find((p) => p.id === panelId);
-  if (!panel) throw new PanelNotFoundError(panelId);
-  return panel;
-}
+const { findPanel, PanelNotFoundError } = require('./panels');
 
 /**
  * Fetches a single panel's data via Grafana's /api/ds/query HTTP API (bypasses the

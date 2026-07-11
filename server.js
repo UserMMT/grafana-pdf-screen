@@ -11,6 +11,8 @@ const serversRouter = require('./routes/servers');
 const jobsRouter = require('./routes/jobs');
 const runsRouter = require('./routes/runs');
 const dashboardsRouter = require('./routes/dashboards');
+const webhooksRouter = require('./routes/webhooks');
+const browseRouter = require('./routes/browse');
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -24,6 +26,8 @@ app.use('/servers', serversRouter);
 app.use('/jobs', jobsRouter);
 app.use('/runs', runsRouter);
 app.use('/api', dashboardsRouter);
+app.use('/webhooks', webhooksRouter);
+app.use('/browse', browseRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);

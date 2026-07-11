@@ -4,6 +4,7 @@ const router = express.Router();
 
 const serversDb = require('../db/servers');
 const client = require('../grafana/client');
+const { summarizePanels } = require('../grafana/panels');
 
 router.get('/servers/:id/dashboards', async (req, res) => {
   const server = serversDb.getById(req.params.id);
@@ -22,19 +23,7 @@ router.get('/servers/:id/dashboards/:uid', async (req, res) => {
   try {
     const dashboardJson = await client.fetchDashboardByUid(server, req.params.uid);
     const dashboard = dashboardJson.dashboard;
-    const panels = [];
-    for (const p of dashboard.panels || []) {
-      if (p.type !== 'row' && p.targets && p.targets.length) {
-        panels.push({ id: p.id, title: p.title, datasourceType: p.datasource?.type || p.targets[0]?.datasource?.type });
-      }
-      if (p.type === 'row' && Array.isArray(p.panels)) {
-        for (const sub of p.panels) {
-          if (sub.targets && sub.targets.length) {
-            panels.push({ id: sub.id, title: sub.title, datasourceType: sub.datasource?.type || sub.targets[0]?.datasource?.type });
-          }
-        }
-      }
-    }
+    const panels = summarizePanels(dashboardJson, { onlyWithTargets: true });
     const variables = (dashboard.templating?.list || []).map((v) => ({
       name: v.name,
       label: v.label || v.name,

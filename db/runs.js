@@ -29,26 +29,28 @@ function finish(runId, { status, pdfPath, csvPath, errorText, detail }) {
   );
 }
 
-function listByJob(jobId, { limit = 50, offset = 0 } = {}) {
-  return db.prepare(`
-    SELECT * FROM job_runs WHERE job_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?
-  `).all(jobId, limit, offset);
-}
-
-function listAll({ status, limit = 50, offset = 0 } = {}) {
-  if (status) {
-    return db.prepare(`
-      SELECT job_runs.*, jobs.name AS job_name
-      FROM job_runs JOIN jobs ON jobs.id = job_runs.job_id
-      WHERE job_runs.status = ?
-      ORDER BY started_at DESC LIMIT ? OFFSET ?
-    `).all(status, limit, offset);
+function listAll({ jobId, status, limit = 50, offset = 0 } = {}) {
+  const clauses = [];
+  const params = [];
+  if (jobId) {
+    clauses.push('job_runs.job_id = ?');
+    params.push(jobId);
   }
+  if (status) {
+    clauses.push('job_runs.status = ?');
+    params.push(status);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   return db.prepare(`
     SELECT job_runs.*, jobs.name AS job_name
     FROM job_runs JOIN jobs ON jobs.id = job_runs.job_id
+    ${where}
     ORDER BY started_at DESC LIMIT ? OFFSET ?
-  `).all(limit, offset);
+  `).all(...params, limit, offset);
+}
+
+function listByJob(jobId, { limit = 50, offset = 0 } = {}) {
+  return listAll({ jobId, limit, offset });
 }
 
 function getById(id) {

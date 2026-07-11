@@ -88,6 +88,50 @@ function searchDashboards(server, query) {
   return apiFetch(server, `/api/search${qs}`);
 }
 
+// Root folder is represented by Grafana as uid=null/undefined; omitting parentUid
+// lists root-level folders, passing a folder's uid lists its direct children.
+function listFolders(server, parentUid) {
+  const qs = parentUid ? `?parentUid=${encodeURIComponent(parentUid)}` : '';
+  return apiFetch(server, `/api/folders${qs}`);
+}
+
+function getFolder(server, uid) {
+  return apiFetch(server, `/api/folders/${encodeURIComponent(uid)}`);
+}
+
+// folderUid undefined/null -> root/general folder (Grafana's sentinel: 'general').
+function listDashboardsInFolder(server, folderUid) {
+  return apiFetch(server, `/api/search?type=dash-db&folderUIDs=${encodeURIComponent(folderUid || 'general')}`);
+}
+
+class RenderUnavailableError extends Error {
+  constructor(status) {
+    super(`panel render endpoint returned ${status} (image renderer may not be installed on this Grafana instance)`);
+    this.name = 'RenderUnavailableError';
+    this.status = status;
+  }
+}
+
+async function renderPanelImage(server, { uid, slug, panelId, width = 320, height = 180, tz = 'UTC' }) {
+  const controller = new AbortController();
+  const timeoutMs = (server.timeout_s || 30) * 1000;
+  const timer = timeoutMs > 0 ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const path = `/render/d-solo/${encodeURIComponent(uid)}/${encodeURIComponent(slug || uid)}`
+      + `?panelId=${encodeURIComponent(panelId)}&width=${width}&height=${height}&tz=${encodeURIComponent(tz)}`;
+    const res = await fetch(`${baseUrl(server)}${path}`, {
+      headers: buildAuthHeaders(server),
+      signal: controller.signal,
+    });
+    if (!res.ok || !(res.headers.get('content-type') || '').startsWith('image/')) {
+      throw new RenderUnavailableError(res.status);
+    }
+    return { buffer: Buffer.from(await res.arrayBuffer()), contentType: res.headers.get('content-type') };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function testConnection(server) {
   try {
     const res = await apiFetch(server, '/api/health');
@@ -99,11 +143,16 @@ async function testConnection(server) {
 
 module.exports = {
   GrafanaApiError,
+  RenderUnavailableError,
   buildAuthHeaders,
   buildDashboardUrl,
   fetchDashboardByUid,
   postDsQuery,
   searchDashboards,
+  listFolders,
+  getFolder,
+  listDashboardsInFolder,
+  renderPanelImage,
   testConnection,
   baseUrl,
 };

@@ -3,36 +3,62 @@
   <h1>Report Jobs</h1>
   <a class="btn primary" href="/jobs/new">+ New job</a>
 </div>
-<table>
-  <thead>
-    <tr><th>Name</th><th>Server</th><th>Outputs</th><th>Schedule</th><th>Next run</th><th>Enabled</th><th></th></tr>
-  </thead>
-  <tbody>
-    <% jobs.forEach(function(job) { %>
-    <tr>
-      <td><%= job.name %></td>
-      <td><%= job.server_name %></td>
-      <td><%= JSON.parse(job.outputs).join(' + ') %></td>
-      <td><code><%= job.cron_expression %></code></td>
-      <td><%= job.nextRun ? new Date(job.nextRun).toLocaleString() : '—' %></td>
-      <td><span class="enabled-badge <%= job.enabled ? 'on' : '' %>"><%= job.enabled ? 'enabled' : 'disabled' %></span></td>
-      <td>
-        <form method="post" action="/jobs/<%= job.id %>/run-now" style="display:inline">
-          <button class="btn small primary" type="submit">Run now</button>
-        </form>
-        <a class="btn small" href="/jobs/<%= job.id %>/edit">Edit</a>
-        <form method="post" action="/jobs/<%= job.id %>/toggle" style="display:inline">
-          <button class="btn small" type="submit"><%= job.enabled ? 'Disable' : 'Enable' %></button>
-        </form>
-        <form method="post" action="/jobs/<%= job.id %>/delete" style="display:inline" onsubmit="return confirm('Delete job <%= job.name %>?')">
-          <button class="btn small danger" type="submit">Delete</button>
-        </form>
-      </td>
-    </tr>
+
+<form class="filter-bar" method="get" action="/jobs">
+  <input type="text" name="q" placeholder="Search by name..." value="<%= filters.q || '' %>">
+  <select name="server">
+    <option value="">All servers</option>
+    <% servers.forEach(function(s) { %>
+      <option value="<%= s.id %>" <%= String(filters.server) === String(s.id) ? 'selected' : '' %>><%= s.name %></option>
     <% }) %>
-    <% if (!jobs.length) { %>
-      <tr><td colspan="7" class="muted">No jobs yet.</td></tr>
-    <% } %>
-  </tbody>
-</table>
+  </select>
+  <select name="enabled">
+    <option value="">All</option>
+    <option value="1" <%= filters.enabled === '1' ? 'selected' : '' %>>Enabled only</option>
+    <option value="0" <%= filters.enabled === '0' ? 'selected' : '' %>>Disabled only</option>
+  </select>
+  <button class="btn small" type="submit">Filter</button>
+  <a class="btn small" href="/jobs">Clear</a>
+</form>
+
+<form method="post" action="/jobs/bulk" id="bulk-form">
+  <div class="bulk-bar">
+    <button class="btn small" type="submit" name="action" value="enable">Enable selected</button>
+    <button class="btn small" type="submit" name="action" value="disable">Disable selected</button>
+    <button class="btn small danger" type="submit" name="action" value="delete" onclick="return confirm('Delete all selected jobs?')">Delete selected</button>
+  </div>
+  <table>
+    <thead>
+      <tr><th><input type="checkbox" id="select-all"></th><th>Name</th><th>Server</th><th>Outputs</th><th>Schedule</th><th>Next run</th><th>Enabled</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% jobs.forEach(function(job) { %>
+      <tr>
+        <td><input type="checkbox" name="ids" value="<%= job.id %>" class="row-check"></td>
+        <td><a href="/jobs/<%= job.id %>"><%= job.name %></a></td>
+        <td><%= job.server_name %></td>
+        <td><%= JSON.parse(job.outputs).join(' + ') %></td>
+        <td><code><%= job.cron_expression %></code></td>
+        <td><%= job.nextRun ? new Date(job.nextRun).toLocaleString() : '—' %></td>
+        <td><span class="enabled-badge <%= job.enabled ? 'on' : '' %>"><%= job.enabled ? 'enabled' : 'disabled' %></span></td>
+        <td>
+          <button class="btn small primary" type="submit" formaction="/jobs/<%= job.id %>/run-now" formmethod="post">Run now</button>
+          <a class="btn small" href="/jobs/<%= job.id %>/edit">Edit</a>
+          <button class="btn small" type="submit" formaction="/jobs/<%= job.id %>/clone" formmethod="post">Clone</button>
+          <button class="btn small" type="submit" formaction="/jobs/<%= job.id %>/toggle" formmethod="post"><%= job.enabled ? 'Disable' : 'Enable' %></button>
+          <button class="btn small danger" type="submit" formaction="/jobs/<%= job.id %>/delete" formmethod="post" onclick="return confirm('Delete job <%= job.name %>?')">Delete</button>
+        </td>
+      </tr>
+      <% }) %>
+      <% if (!jobs.length) { %>
+        <tr><td colspan="8" class="muted">No jobs match this filter.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</form>
+<script>
+  document.getElementById('select-all').addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(function (cb) { cb.checked = document.getElementById('select-all').checked; });
+  });
+</script>
 <%- include('../partials/footer') %>

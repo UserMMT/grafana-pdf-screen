@@ -1,8 +1,25 @@
 <%- include('../partials/header', { title: 'Run history', active: 'runs' }) %>
 <div class="toolbar">
   <h1>Run History<% if (job) { %> — <%= job.name %><% } %></h1>
-  <% if (job) { %><a class="btn" href="/runs">Clear filter</a><% } %>
 </div>
+
+<form class="filter-bar" method="get" action="/runs">
+  <select name="job">
+    <option value="">All jobs</option>
+    <% jobs.forEach(function(j) { %>
+      <option value="<%= j.id %>" <%= String(jobId) === String(j.id) ? 'selected' : '' %>><%= j.name %></option>
+    <% }) %>
+  </select>
+  <select name="status">
+    <option value="">All statuses</option>
+    <% ['running','success','partial','error'].forEach(function(s) { %>
+      <option value="<%= s %>" <%= status === s ? 'selected' : '' %>><%= s %></option>
+    <% }) %>
+  </select>
+  <button class="btn small" type="submit">Filter</button>
+  <a class="btn small" href="/runs">Clear</a>
+</form>
+
 <table>
   <thead>
     <tr><th>Job</th><th>Trigger</th><th>Started</th><th>Finished</th><th>Status</th><th></th></tr>
@@ -10,7 +27,7 @@
   <tbody>
     <% runs.forEach(function(r) { %>
     <tr>
-      <td><%= r.job_name || r.job_id %></td>
+      <td><a href="/jobs/<%= r.job_id %>"><%= r.job_name || r.job_id %></a></td>
       <td><%= r.trigger_type %></td>
       <td><%= new Date(r.started_at).toLocaleString() %></td>
       <td><%= r.finished_at ? new Date(r.finished_at).toLocaleString() : '—' %></td>
@@ -19,7 +36,7 @@
     </tr>
     <% }) %>
     <% if (!runs.length) { %>
-      <tr><td colspan="6" class="muted">No runs yet.</td></tr>
+      <tr><td colspan="6" class="muted">No runs match this filter.</td></tr>
     <% } %>
   </tbody>
 </table>

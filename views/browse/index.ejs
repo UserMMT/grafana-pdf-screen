@@ -1,0 +1,20 @@
+<%- include('../partials/header', { title: 'Browse dashboards', active: 'browse' }) %>
+<h1>Browse dashboards</h1>
+<% if (!servers.length) { %>
+  <div class="error-box">No Grafana servers configured yet. <a href="/servers/new">Add one first</a>.</div>
+<% } else { %>
+  <p class="hint">Pick a server to explore its dashboards and panels.</p>
+  <table>
+    <thead><tr><th>Server</th><th>Base URL</th><th></th></tr></thead>
+    <tbody>
+      <% servers.forEach(function(s) { %>
+      <tr>
+        <td><%= s.name %></td>
+        <td><%= s.base_url %></td>
+        <td><a class="btn small primary" href="/browse/<%= s.id %>">Browse</a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+<%- include('../partials/footer') %>

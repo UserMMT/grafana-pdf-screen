@@ -1,0 +1,46 @@
+<%
+function crumbsUrl(list) { return '/browse/' + server.id + (list.length ? '?crumbs=' + encodeURIComponent(JSON.stringify(list)) : ''); }
+function jobUrl(panel) {
+  var params = new URLSearchParams({
+    server_id: server.id,
+    dashboard_uid: dashboardUid,
+    dashboard_path: dashboardPath || ('/d/' + dashboardUid),
+  });
+  if (panel) { params.set('panel_id', panel.id); params.set('panel_title', panel.title); }
+  return '/jobs/new?' + params.toString();
+}
+%>
+<%- include('../partials/header', { title: dashboard ? dashboard.title : 'Dashboard', active: 'browse' }) %>
+<div class="toolbar">
+  <h1>
+    <a href="<%= crumbsUrl([]) %>">Browse</a> / <a href="<%= crumbsUrl(crumbs) %>"><%= server.name %></a>
+    <% crumbs.forEach(function(c, i) { %> / <a href="<%= crumbsUrl(crumbs.slice(0, i + 1)) %>"><%= c.title %></a><% }) %>
+    <% if (dashboard) { %> / <%= dashboard.title %><% } %>
+  </h1>
+  <% if (dashboard) { %><a class="btn primary" href="<%= jobUrl(null) %>">Create job for whole dashboard</a><% } %>
+</div>
+
+<% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+<% if (dashboard) { %>
+<div class="panel-grid">
+  <% panels.forEach(function(p) { %>
+  <div class="panel-card">
+    <div class="panel-thumb">
+      <img src="/browse/<%= server.id %>/render/<%= dashboardUid %>/<%= p.id %>?slug=<%= encodeURIComponent(slug) %>&w=320&h=180"
+           alt="<%= p.title %>"
+           onerror="this.replaceWith(Object.assign(document.createElement('div'), {className:'panel-thumb-fallback', textContent:'No preview'}))">
+    </div>
+    <div class="panel-card-body">
+      <strong><%= p.title || '(untitled panel)' %></strong>
+      <div class="hint"><%= p.type %><% if (p.datasourceType) { %> · <%= p.datasourceType %><% } %><% if (!p.hasData) { %> · no data query<% } %></div>
+      <% if (p.hasData) { %>
+        <a class="btn small" href="<%= jobUrl(p) %>">Create job for this panel</a>
+      <% } %>
+    </div>
+  </div>
+  <% }) %>
+  <% if (!panels.length) { %><p class="muted">This dashboard has no panels.</p><% } %>
+</div>
+<% } %>
+<%- include('../partials/footer') %>

@@ -139,4 +139,52 @@
   if (existingJob && existingJob.dashboard_uid) {
     loadDashboardDetail(existingJob.dashboard_uid, existingJob.panel_id);
   }
+
+  // --- Cron presets + live next-run preview ---
+  var cronInput = document.getElementById('cron_expression');
+  var cronPreview = document.getElementById('cron_preview');
+
+  function updateCronPreview() {
+    var expr = cronInput.value.trim();
+    if (!expr) { cronPreview.textContent = '—'; return; }
+    fetch('/jobs/cron-preview?expr=' + encodeURIComponent(expr))
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.ok) { cronPreview.textContent = res.message; cronPreview.style.color = '#a11919'; return; }
+        cronPreview.style.color = '#777';
+        cronPreview.textContent = 'Next runs: ' + res.next.map(function (d) { return new Date(d).toLocaleString(); }).join('  •  ');
+      })
+      .catch(function () { cronPreview.textContent = '—'; });
+  }
+
+  var cronTimer = null;
+  cronInput.addEventListener('input', function () {
+    clearTimeout(cronTimer);
+    cronTimer = setTimeout(updateCronPreview, 300);
+  });
+  document.querySelectorAll('.cron-presets [data-cron]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      cronInput.value = btn.dataset.cron;
+      updateCronPreview();
+    });
+  });
+  updateCronPreview();
+
+  // --- Inline validation: CSV output requires a panel ---
+  var jobForm = document.getElementById('job-form');
+  jobForm.addEventListener('submit', function (e) {
+    var csvChecked = jobForm.querySelector('[name=output_csv]').checked;
+    if (csvChecked && !panelIdInput.value) {
+      e.preventDefault();
+      var msg = document.getElementById('csv-panel-error');
+      if (!msg) {
+        msg = document.createElement('div');
+        msg.id = 'csv-panel-error';
+        msg.className = 'field-error';
+        msg.textContent = 'CSV output is checked but no panel is selected — pick a panel above, or uncheck CSV.';
+        panelSelect.parentNode.appendChild(msg);
+      }
+      panelSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
 })();

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
+    "preview": "node scripts/preview.js",
     "legacy-proxy": "node index.js"
   },
   "dependencies": {

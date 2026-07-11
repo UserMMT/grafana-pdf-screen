@@ -1,16 +1,33 @@
 'use strict';
 const { db } = require('./index');
+const { generateWebhookToken } = require('./migrate');
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-function list() {
+function list({ q, serverId, enabled } = {}) {
+  const clauses = [];
+  const params = [];
+  if (q) {
+    clauses.push('jobs.name LIKE ?');
+    params.push(`%${q}%`);
+  }
+  if (serverId) {
+    clauses.push('jobs.server_id = ?');
+    params.push(serverId);
+  }
+  if (enabled !== undefined && enabled !== null && enabled !== '') {
+    clauses.push('jobs.enabled = ?');
+    params.push(enabled ? 1 : 0);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   return db.prepare(`
     SELECT jobs.*, grafana_servers.name AS server_name
     FROM jobs JOIN grafana_servers ON grafana_servers.id = jobs.server_id
+    ${where}
     ORDER BY jobs.name
-  `).all();
+  `).all(...params);
 }
 
 function listEnabled() {
@@ -21,14 +38,18 @@ function getById(id) {
   return db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
 }
 
+function getByWebhookToken(token) {
+  return db.prepare('SELECT * FROM jobs WHERE webhook_token = ?').get(token);
+}
+
 function create(fields) {
   const ts = nowIso();
   const stmt = db.prepare(`
     INSERT INTO jobs
       (name, server_id, dashboard_uid, dashboard_path, panel_id, panel_title,
        variables_json, outputs, cron_expression, enabled, save_local, save_path,
-       pdf_format, page_size_mode, pdf_width, time_from, time_to, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       pdf_format, page_size_mode, pdf_width, time_from, time_to, webhook_token, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const info = stmt.run(
     fields.name,
@@ -48,6 +69,7 @@ function create(fields) {
     fields.pdf_width ?? null,
     fields.time_from || null,
     fields.time_to || null,
+    generateWebhookToken(),
     ts,
     ts
   );
@@ -91,9 +113,25 @@ function setEnabled(id, enabled) {
   return getById(id);
 }
 
+function regenerateWebhookToken(id) {
+  const token = generateWebhookToken();
+  db.prepare('UPDATE jobs SET webhook_token = ?, updated_at = ? WHERE id = ?').run(token, nowIso(), id);
+  return getById(id);
+}
+
 function remove(id) {
   db.prepare('DELETE FROM job_runs WHERE job_id = ?').run(id);
   db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
 }
 
-module.exports = { list, listEnabled, getById, create, update, setEnabled, remove };
+module.exports = {
+  list,
+  listEnabled,
+  getById,
+  getByWebhookToken,
+  create,
+  update,
+  setEnabled,
+  regenerateWebhookToken,
+  remove,
+};
