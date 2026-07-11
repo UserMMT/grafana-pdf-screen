@@ -1,0 +1,21 @@
+<%- include('../partials/header', { title: 'Run detail', active: 'runs' }) %>
+<div class="toolbar">
+  <h1>Run #<%= run.id %> — <%= run.job_name %></h1>
+  <a class="btn" href="/runs?job=<%= run.job_id %>">Back to job runs</a>
+</div>
+<p>
+  <span class="status <%= run.status %>"><%= run.status %></span>
+  &nbsp;triggered by <strong><%= run.trigger_type %></strong>
+  &nbsp;started <%= new Date(run.started_at).toLocaleString() %>
+  <% if (run.finished_at) { %>&nbsp;finished <%= new Date(run.finished_at).toLocaleString() %><% } %>
+</p>
+<% if (run.error_text) { %>
+  <div class="error-box"><%= run.error_text %></div>
+<% } %>
+<p>
+  <% if (run.pdf_path) { %><a class="btn" href="/runs/<%= run.id %>/download/pdf">Download PDF</a><% } %>
+  <% if (run.csv_path) { %><a class="btn" href="/runs/<%= run.id %>/download/csv">Download CSV</a><% } %>
+</p>
+<h3>Run detail (trace)</h3>
+<pre class="detail"><%= detail ? JSON.stringify(detail, null, 2) : 'no detail recorded' %></pre>
+<%- include('../partials/footer') %>

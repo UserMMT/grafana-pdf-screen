@@ -1,0 +1,38 @@
+<%- include('../partials/header', { title: 'Jobs', active: 'jobs' }) %>
+<div class="toolbar">
+  <h1>Report Jobs</h1>
+  <a class="btn primary" href="/jobs/new">+ New job</a>
+</div>
+<table>
+  <thead>
+    <tr><th>Name</th><th>Server</th><th>Outputs</th><th>Schedule</th><th>Next run</th><th>Enabled</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% jobs.forEach(function(job) { %>
+    <tr>
+      <td><%= job.name %></td>
+      <td><%= job.server_name %></td>
+      <td><%= JSON.parse(job.outputs).join(' + ') %></td>
+      <td><code><%= job.cron_expression %></code></td>
+      <td><%= job.nextRun ? new Date(job.nextRun).toLocaleString() : '—' %></td>
+      <td><span class="enabled-badge <%= job.enabled ? 'on' : '' %>"><%= job.enabled ? 'enabled' : 'disabled' %></span></td>
+      <td>
+        <form method="post" action="/jobs/<%= job.id %>/run-now" style="display:inline">
+          <button class="btn small primary" type="submit">Run now</button>
+        </form>
+        <a class="btn small" href="/jobs/<%= job.id %>/edit">Edit</a>
+        <form method="post" action="/jobs/<%= job.id %>/toggle" style="display:inline">
+          <button class="btn small" type="submit"><%= job.enabled ? 'Disable' : 'Enable' %></button>
+        </form>
+        <form method="post" action="/jobs/<%= job.id %>/delete" style="display:inline" onsubmit="return confirm('Delete job <%= job.name %>?')">
+          <button class="btn small danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    <% }) %>
+    <% if (!jobs.length) { %>
+      <tr><td colspan="7" class="muted">No jobs yet.</td></tr>
+    <% } %>
+  </tbody>
+</table>
+<%- include('../partials/footer') %>

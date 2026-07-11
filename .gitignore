@@ -4,3 +4,6 @@ package-lock.json
 .history
 .vscode
 tmp
+data
+.env
+.env*

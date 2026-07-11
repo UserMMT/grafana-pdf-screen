@@ -1,0 +1,72 @@
+<%- include('../partials/header', { title: server ? 'Edit server' : 'Add server', active: 'servers' }) %>
+<h1><%= server ? 'Edit server' : 'Add server' %></h1>
+<% if (error) { %><div class="error-box"><%= error %></div><% } %>
+<form class="card" method="post" action="<%= server ? '/servers/' + server.id : '/servers' %>" id="server-form">
+  <div class="field">
+    <label>Name</label>
+    <input type="text" name="name" required value="<%= server ? server.name : '' %>">
+  </div>
+  <div class="field">
+    <label>Base URL</label>
+    <input type="text" name="base_url" required placeholder="https://grafana.example.com" value="<%= server ? server.base_url : '' %>">
+    <div class="hint">No trailing slash.</div>
+  </div>
+  <div class="field">
+    <label>Auth method</label>
+    <select name="auth_method" id="auth_method">
+      <option value="none" <%= server && server.auth_method === 'none' ? 'selected' : '' %>>None</option>
+      <option value="basic" <%= !server || server.auth_method === 'basic' ? 'selected' : '' %>>Basic (user/pass)</option>
+      <option value="api_key" <%= server && server.auth_method === 'api_key' ? 'selected' : '' %>>API key (Bearer)</option>
+    </select>
+  </div>
+  <div class="field" id="basic-fields">
+    <label>Username</label>
+    <input type="text" name="auth_user" value="<%= server && server.auth_user ? server.auth_user : '' %>">
+    <label style="margin-top:0.5rem">Password</label>
+    <input type="password" name="auth_pass" value="<%= server && server.auth_pass ? server.auth_pass : '' %>">
+  </div>
+  <div class="field" id="apikey-fields">
+    <label>API key</label>
+    <input type="text" name="auth_api_key" value="<%= server && server.auth_api_key ? server.auth_api_key : '' %>">
+  </div>
+  <div class="field">
+    <label>Timeout (seconds)</label>
+    <input type="number" name="timeout_s" value="<%= server ? server.timeout_s : 30 %>">
+  </div>
+  <div class="field checkbox-row">
+    <input type="checkbox" name="tls_skip_verify" id="tls_skip_verify" <%= server && server.tls_skip_verify ? 'checked' : '' %>>
+    <label for="tls_skip_verify">Skip TLS certificate verification (self-signed certs)</label>
+  </div>
+  <div class="field">
+    <button type="button" class="btn" id="test-btn">Test connection</button>
+    <span class="test-result" id="test-result"></span>
+  </div>
+  <button class="btn primary" type="submit">Save</button>
+  <a class="btn" href="/servers">Cancel</a>
+</form>
+<script>
+  function syncAuthFields() {
+    var method = document.getElementById('auth_method').value;
+    document.getElementById('basic-fields').style.display = method === 'basic' ? 'block' : 'none';
+    document.getElementById('apikey-fields').style.display = method === 'api_key' ? 'block' : 'none';
+  }
+  document.getElementById('auth_method').addEventListener('change', syncAuthFields);
+  syncAuthFields();
+
+  document.getElementById('test-btn').addEventListener('click', function () {
+    var form = document.getElementById('server-form');
+    var data = new FormData(form);
+    var params = new URLSearchParams();
+    for (var pair of data.entries()) params.append(pair[0], pair[1]);
+    var resultEl = document.getElementById('test-result');
+    resultEl.textContent = 'Testing...';
+    fetch('/servers/test', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: params })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        resultEl.textContent = (res.ok ? 'OK: ' : 'FAILED: ') + res.message;
+        resultEl.style.color = res.ok ? '#196c2e' : '#a11919';
+      })
+      .catch(function (e) { resultEl.textContent = 'Request failed: ' + e.message; resultEl.style.color = '#a11919'; });
+  });
+</script>
+<%- include('../partials/footer') %>

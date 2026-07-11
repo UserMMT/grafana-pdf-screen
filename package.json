@@ -1,10 +1,21 @@
 {
   "name": "grafana-pdf-proxy",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "2.0.0",
+  "main": "server.js",
   "license": "AGPL-3.0-or-later",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "legacy-proxy": "node index.js"
+  },
   "dependencies": {
+    "cron-parser": "^4.9.0",
     "dotenv": "^16.0.3",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
     "puppeteer": "*"
   }
 }

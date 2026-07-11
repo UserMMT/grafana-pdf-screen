@@ -1,0 +1,110 @@
+<%- include('../partials/header', { title: job ? 'Edit job' : 'New job', active: 'jobs' }) %>
+<h1><%= job ? 'Edit job' : 'New job' %></h1>
+<% if (error) { %><div class="error-box"><%= error %></div><% } %>
+<% if (!servers.length) { %>
+  <div class="error-box">No Grafana servers configured yet. <a href="/servers/new">Add one first</a>.</div>
+<% } else { %>
+<form class="card" method="post" action="<%= job ? '/jobs/' + job.id : '/jobs' %>" id="job-form" style="max-width:760px">
+  <div class="field">
+    <label>Job name</label>
+    <input type="text" name="name" required value="<%= job ? job.name : '' %>">
+  </div>
+
+  <div class="field">
+    <label>Grafana server</label>
+    <select name="server_id" id="server_id" required>
+      <% servers.forEach(function(s) { %>
+        <option value="<%= s.id %>" <%= job && job.server_id === s.id ? 'selected' : '' %>><%= s.name %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Dashboard</label>
+    <input type="text" id="dashboard_search" placeholder="Search dashboards by title...">
+    <select id="dashboard_select" size="6" style="margin-top:0.4rem"></select>
+    <input type="hidden" name="dashboard_uid" id="dashboard_uid" value="<%= job ? job.dashboard_uid : '' %>">
+    <input type="hidden" name="dashboard_path" id="dashboard_path" value="<%= job && job.dashboard_path ? job.dashboard_path : '' %>">
+    <div class="hint">Currently selected: <span id="dashboard_selected_label"><%= job ? job.dashboard_uid : 'none' %></span></div>
+  </div>
+
+  <div class="field">
+    <label>Panel (required for CSV output; leave blank for whole-dashboard PDF only)</label>
+    <select id="panel_select">
+      <option value="">— whole dashboard —</option>
+    </select>
+    <input type="hidden" name="panel_id" id="panel_id" value="<%= job && job.panel_id ? job.panel_id : '' %>">
+    <input type="hidden" name="panel_title" id="panel_title" value="<%= job && job.panel_title ? job.panel_title : '' %>">
+  </div>
+
+  <div class="field">
+    <label>Variables</label>
+    <div id="variables_container" class="hint">Select a dashboard to load its template variables.</div>
+    <input type="hidden" name="variables_json" id="variables_json" value='<%- job ? job.variables_json : "{}" %>'>
+  </div>
+
+  <div class="field">
+    <label>Outputs</label>
+    <div class="outputs-checks">
+      <label class="checkbox-row"><input type="checkbox" name="output_pdf" <%= !job || JSON.parse(job.outputs).includes('pdf') ? 'checked' : '' %>> PDF</label>
+      <label class="checkbox-row"><input type="checkbox" name="output_csv" <%= job && JSON.parse(job.outputs).includes('csv') ? 'checked' : '' %>> CSV (requires panel selected above)</label>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Cron schedule</label>
+    <input type="text" name="cron_expression" required placeholder="0 8 * * *" value="<%= job ? job.cron_expression : '0 8 * * *' %>">
+    <div class="hint">Standard 5-field cron (minute hour day month weekday). Example: <code>0 8 * * *</code> = every day at 08:00.</div>
+  </div>
+
+  <div class="field checkbox-row">
+    <input type="checkbox" name="enabled" id="enabled" <%= !job || job.enabled ? 'checked' : '' %>>
+    <label for="enabled">Enabled</label>
+  </div>
+
+  <div class="field checkbox-row">
+    <input type="checkbox" name="save_local" id="save_local" <%= job && job.save_local ? 'checked' : '' %>>
+    <label for="save_local">Save output to disk (otherwise ephemeral in tmp/)</label>
+  </div>
+  <div class="field">
+    <label>Save path (optional, supports {dashboard} {panel} {date} tokens)</label>
+    <input type="text" name="save_path" placeholder="./data/output/{dashboard}/{date}" value="<%= job && job.save_path ? job.save_path : '' %>">
+  </div>
+
+  <div class="field">
+    <label>PDF page sizing</label>
+    <select name="page_size_mode" id="page_size_mode">
+      <option value="auto-fit-content" <%= !job || job.page_size_mode === 'auto-fit-content' ? 'selected' : '' %>>Auto-fit content (measures dashboard height)</option>
+      <option value="fixed-format" <%= job && job.page_size_mode === 'fixed-format' ? 'selected' : '' %>>Fixed paper format</option>
+    </select>
+  </div>
+  <div class="field" id="pdf_format_field">
+    <label>PDF format</label>
+    <select name="pdf_format">
+      <% ['A4','A3','Letter','Legal','Tabloid'].forEach(function(f) { %>
+        <option value="<%= f %>" <%= job && job.pdf_format === f ? 'selected' : '' %>><%= f %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label>PDF width override (px, blank = server default)</label>
+    <input type="number" name="pdf_width" value="<%= job && job.pdf_width ? job.pdf_width : '' %>">
+  </div>
+
+  <div class="field">
+    <label>Time range override (optional, e.g. now-24h / now)</label>
+    <div style="display:flex; gap:0.5rem">
+      <input type="text" name="time_from" placeholder="now-24h" value="<%= job && job.time_from ? job.time_from : '' %>">
+      <input type="text" name="time_to" placeholder="now" value="<%= job && job.time_to ? job.time_to : '' %>">
+    </div>
+  </div>
+
+  <button class="btn primary" type="submit">Save job</button>
+  <a class="btn" href="/jobs">Cancel</a>
+</form>
+<script>
+  window.__JOB_FORM__ = <%- JSON.stringify(job) %>;
+</script>
+<script src="/js/job-form.js"></script>
+<% } %>
+<%- include('../partials/footer') %>

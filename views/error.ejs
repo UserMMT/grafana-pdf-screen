@@ -1,0 +1,4 @@
+<%- include('partials/header', { title: 'Error', active: '' }) %>
+<h1>Something went wrong</h1>
+<div class="error-box"><%= error && error.message ? error.message : 'Unknown error' %></div>
+<%- include('partials/footer') %>

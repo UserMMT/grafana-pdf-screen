@@ -1,0 +1,30 @@
+<%- include('../partials/header', { title: 'Servers', active: 'servers' }) %>
+<div class="toolbar">
+  <h1>Grafana Servers</h1>
+  <a class="btn primary" href="/servers/new">+ Add server</a>
+</div>
+<table>
+  <thead>
+    <tr><th>Name</th><th>Base URL</th><th>Auth</th><th>Timeout</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% servers.forEach(function(s) { %>
+    <tr>
+      <td><%= s.name %></td>
+      <td><%= s.base_url %></td>
+      <td><%= s.auth_method %></td>
+      <td><%= s.timeout_s %>s</td>
+      <td>
+        <a class="btn small" href="/servers/<%= s.id %>/edit">Edit</a>
+        <form method="post" action="/servers/<%= s.id %>/delete" style="display:inline" onsubmit="return confirm('Delete server <%= s.name %>?')">
+          <button class="btn small danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    <% }) %>
+    <% if (!servers.length) { %>
+      <tr><td colspan="5" class="muted">No servers yet. Add one to start creating jobs.</td></tr>
+    <% } %>
+  </tbody>
+</table>
+<%- include('../partials/footer') %>
