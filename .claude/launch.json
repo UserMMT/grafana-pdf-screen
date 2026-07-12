@@ -2,10 +2,22 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "grafana-pdf-screen",
+      "name": "grafana-pdf-screen (preview, port 6600)",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview"],
       "port": 6600
+    },
+    {
+      "name": "grafana-pdf-screen (default, port 5555)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 5555
+    },
+    {
+      "name": "grafana-pdf-screen (legacy PDF-only proxy, port 5555)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "legacy-proxy"],
+      "port": 5555
     }
   ]
 }

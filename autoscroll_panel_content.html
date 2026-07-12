@@ -1,0 +1,136 @@
+
+
+    <button id="MyAutoScroll" style="height: 100%; width: 100%;" onclick="toggleScroll()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" height="100%"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg> </button>
+
+    <div>
+        <br>
+    <span id="Scroll_Waiting">seconds before autoplay: </span>
+    <br>
+    <span id="Scroll_default">default autoplay state: </span>
+    <br>
+    <span id="Scroll_px">scroll step (px): </span>
+    <br>
+    <span id="Scroll_delay">delay between steps (ms): </span>
+    <br>
+    <span id="Scroll_inv_delay">delay before reversing direction (ms): </span>
+</div>
+    <script>
+(function () {
+  // --- Configuration ---
+  // Edit the fallback numbers below to change default behavior, or override
+  // per-dashboard without touching this panel: add a dashboard template
+  // variable named e.g. "autoscroll_wait_ms" and Grafana will automatically
+  // put "var-autoscroll_wait_ms=<value>" on the URL, which this script reads.
+  // Dashboards that don't define these variables are unaffected.
+  function getVarOverride(name, fallback) {
+    var params = new URLSearchParams(window.location.search);
+    var raw = params.get('var-' + name);
+    var num = raw !== null ? Number(raw) : NaN;
+    return isNaN(num) ? fallback : num;
+  }
+
+  var Scroll_Waiting = getVarOverride('autoscroll_wait_ms', 45000);
+  var Scroll_delay = getVarOverride('autoscroll_delay_ms', 8000);
+  var distance = getVarOverride('autoscroll_distance_px', 250);
+  var Scroll_inv_delay = getVarOverride('autoscroll_invert_delay_ms', 1000);
+  var scrollState = false;
+  var sens = true;
+  var running = false;
+
+  document.getElementById('Scroll_Waiting').innerHTML += Scroll_Waiting;
+  document.getElementById('Scroll_default').innerHTML += scrollState;
+  document.getElementById('Scroll_px').innerHTML += distance;
+  document.getElementById('Scroll_delay').innerHTML += Scroll_delay;
+  document.getElementById('Scroll_inv_delay').innerHTML += Scroll_inv_delay;
+
+  function sleep(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  // Grafana's dashboard-grid/scroll-container DOM has changed across
+  // versions (pre-Scenes vs Grafana 10+ Scenes architecture). The old
+  // ".view"/".scrollbar-view" custom-scrollbar classes no longer exist on
+  // current Grafana - it scrolls the document itself now. Try the legacy
+  // classes first (older Grafana), then fall back to native document
+  // scrolling, which is what current Grafana actually uses.
+  function getScrollContainer() {
+    return document.querySelector('.view')
+      || document.querySelector('.scrollbar-view')
+      || document.scrollingElement
+      || document.documentElement;
+  }
+
+  async function pageScrollLoop() {
+    running = true;
+    while (scrollState) {
+      var container = getScrollContainer();
+      var max = Math.max(0, container.scrollHeight - container.clientHeight);
+      if (max <= 0) {
+        // nothing to scroll (short dashboard, or container not found this tick) - idle and re-check
+        await sleep(Scroll_delay);
+        continue;
+      }
+      var current = container.scrollTop;
+      if (sens && current >= max) {
+        sens = false;
+        await sleep(Scroll_inv_delay);
+        if (!scrollState) break;
+      } else if (!sens && current <= 0) {
+        sens = true;
+        await sleep(Scroll_inv_delay);
+        if (!scrollState) break;
+      }
+      container.scrollBy({ top: sens ? distance : -distance, left: 0, behavior: 'smooth' });
+      await sleep(Scroll_delay);
+    }
+    running = false;
+  }
+
+  var ICON_PLAY = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" %SIZE%><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>';
+  var ICON_PAUSE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" %SIZE%><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z"/></svg>';
+
+  function setButtonIcon(playing) {
+    var icon = playing ? ICON_PAUSE : ICON_PLAY;
+    document.getElementById('MyAutoScroll').innerHTML = icon.replace('%SIZE%', 'height="100%"');
+    var playButton = document.getElementById('playButton');
+    if (playButton) playButton.innerHTML = icon.replace('%SIZE%', 'width="18" height="18" class="css-1d3xu67-Icon"');
+  }
+
+  function toggleScroll() {
+    scrollState = !scrollState;
+    setButtonIcon(scrollState);
+    if (scrollState && !running) pageScrollLoop();
+  }
+  window.toggleScroll = toggleScroll;
+
+  // Optional manual toggle injected into Grafana's kiosk toolbar. This class
+  // name is an internal Grafana build artifact (Emotion CSS-in-JS) that
+  // changes between versions/builds - skip silently instead of throwing if
+  // it's not found (and note kiosk mode normally hides the toolbar anyway,
+  // so this is mainly useful while editing/previewing, not in real kiosk use).
+  if (!document.getElementById('playButton')) {
+    var toolbarHost = document.getElementsByClassName('css-ztq7l5')[0];
+    if (toolbarHost) {
+      toolbarHost.insertAdjacentHTML('afterbegin',
+        '<div style="order: -1; visibility: visible;" class="css-exd1zr"><button id="playButton" onclick="toggleScroll()" class="css-1mrmgpk-toggle-button" aria-label="toggle autoPlay" tabindex="0"></button></div>');
+      setButtonIcon(scrollState);
+    }
+  }
+
+  // Auto-start after Scroll_Waiting ms if left alone in kiosk mode (heuristic:
+  // viewport width != 1200, which is what the panel editor preview uses -
+  // kept from the original design). The wait is now a real delay since this
+  // runs inside an async IIFE instead of a fire-and-forget sleep() call.
+  (async function initAutoTrigger() {
+    await sleep(Scroll_Waiting);
+    setInterval(function () {
+      if (!scrollState
+        && visualViewport.width !== 1200
+        && new URLSearchParams(window.location.search).get('kiosk') !== null) {
+        toggleScroll();
+      }
+    }, 10000);
+  })();
+})();
+    </script>
