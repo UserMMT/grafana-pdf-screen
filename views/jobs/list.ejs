@@ -1,4 +1,4 @@
-<%- include('../partials/header', { title: 'Jobs', active: 'jobs' }) %>
+<%- include('../partials/header', { title: 'Jobs', active: 'jobs', pageId: 'jobs-list' }) %>
 <div class="toolbar">
   <h1>Report Jobs</h1>
   <a class="btn primary" href="/jobs/new">+ New job</a>
@@ -60,5 +60,16 @@
   document.getElementById('select-all').addEventListener('change', function () {
     document.querySelectorAll('.row-check').forEach(function (cb) { cb.checked = document.getElementById('select-all').checked; });
   });
+
+  window.__TOUR_STEPS__ = [
+    { selector: '.brand', title: 'Welcome to Grafana Reports', text: 'This app schedules Grafana dashboard/panel reports (PDF and/or CSV) on a cron schedule or via webhook. This quick tour points out where everything lives — click Next to continue, or Skip anytime.' },
+    { selector: 'a[href="/jobs/new"]', title: 'Create a job', text: 'A job is: a dashboard + optional panel + variables + a schedule + which outputs to produce. Start here to create one.' },
+    { selector: '.filter-bar', title: 'Find jobs fast', text: 'Filter the job list by name, server, or enabled/disabled state.' },
+    { selector: '.bulk-bar', title: 'Bulk actions', text: 'Select rows with the checkboxes on the left, then enable, disable, or delete several jobs at once.' },
+    { selector: 'table', title: 'Per-job actions', text: 'Each row lets you Run now (trigger immediately without waiting for the schedule), Edit, Clone (duplicate as a disabled draft), toggle Enable/Disable, or Delete. Click a job\'s name to see its detail page and run history.' },
+    { selector: 'a[href="/browse"]', title: 'Browse your Grafana dashboards', text: 'Explore a server\'s folders and dashboards, see panel thumbnails, and create a job straight from a panel you find there.' },
+    { selector: 'a[href="/runs"]', title: 'Run history', text: 'Every run (scheduled, manual, or webhook-triggered) is logged here with its status, downloadable outputs, and a JSON trace for debugging.' },
+    { selector: '#tour-guide-btn', title: 'Replay this guide anytime', text: 'Click the Guide button on any page to see its tour again.' }
+  ];
 </script>
 <%- include('../partials/footer') %>

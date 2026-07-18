@@ -1,5 +1,5 @@
 <% const v = job || prefill || {}; %>
-<%- include('../partials/header', { title: job ? 'Edit job' : 'New job', active: 'jobs' }) %>
+<%- include('../partials/header', { title: job ? 'Edit job' : 'New job', active: 'jobs', pageId: 'jobs-form' }) %>
 <h1><%= job ? 'Edit job' : 'New job' %></h1>
 <% if (error) { %><div class="error-box"><%= error %></div><% } %>
 <% if (prefill) { %><div class="hint" style="margin-bottom:1rem">Pre-filled from the dashboard browser — review and save.</div><% } %>
@@ -115,7 +115,7 @@
 </form>
 
 <% if (job) { %>
-<div class="card" style="max-width:760px; margin-top:1rem">
+<div class="card" id="webhook-section" style="max-width:760px; margin-top:1rem">
   <label>Webhook trigger URL</label>
   <div class="hint">POST to this URL (no body needed) to trigger this job on demand, in addition to its cron schedule. The token is the only auth — treat it like a secret.</div>
   <div style="display:flex; gap:0.5rem; margin-top:0.4rem">
@@ -131,5 +131,16 @@
   window.__JOB_FORM__ = <%- JSON.stringify(v) %>;
 </script>
 <script src="/js/job-form.js"></script>
+<script>
+  window.__TOUR_STEPS__ = [
+    { selector: '#server_id', title: 'Pick a Grafana server', text: 'Choose which configured Grafana server this job targets.' },
+    { selector: '#dashboard_search', title: 'Find the dashboard', text: 'Search dashboards on that server by title — this calls Grafana\'s own search API live.' },
+    { selector: '#panel_select', title: 'Whole dashboard or one panel?', text: 'Leave this on "whole dashboard" for a PDF-only job, or pick a specific panel if you also want its data as CSV.' },
+    { selector: '#variables_container', title: 'Template variables', text: 'If the dashboard has template variables, set the specific combination this job should render (e.g. a particular server or environment).' },
+    { selector: '.outputs-checks', title: 'Choose outputs', text: 'PDF renders a screenshot via headless Chrome. CSV pulls the panel\'s data directly through Grafana\'s query API (not screen-scraping) — it needs a panel selected above.' },
+    { selector: '.cron-presets', title: 'Schedule it', text: 'Use a preset or type a cron expression — the line below updates live with the next 3 run times so you can sanity-check it before saving.' },
+    { selector: '#save_local', title: 'Where outputs go', text: 'Off by default (files land in a temporary folder). Turn this on to keep outputs permanently, with optional {dashboard}/{panel}/{date} folder tokens.' }<%- job ? ",\n    { selector: '#webhook-section', title: 'Webhook trigger', text: 'Every saved job gets a unique webhook URL — POST to it to trigger a run on demand, independent of the cron schedule. Regenerate the token any time to revoke the old URL.' }" : '' %>
+  ];
+</script>
 <% } %>
 <%- include('../partials/footer') %>

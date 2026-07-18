@@ -1,4 +1,4 @@
-<%- include('../partials/header', { title: 'Run history', active: 'runs' }) %>
+<%- include('../partials/header', { title: 'Run history', active: 'runs', pageId: 'runs-list' }) %>
 <div class="toolbar">
   <h1>Run History<% if (job) { %> — <%= job.name %><% } %></h1>
 </div>
@@ -40,4 +40,10 @@
     <% } %>
   </tbody>
 </table>
+<script>
+  window.__TOUR_STEPS__ = [
+    { selector: '.filter-bar', title: 'Filter runs', text: 'Narrow this list down to one job and/or a status (running/success/partial/error).' },
+    { selector: 'table', title: 'What each run shows', text: 'Trigger tells you whether it fired from the cron schedule, a manual "Run now" click, or a webhook call. Click Details on any row for downloads and a full JSON trace of what happened.' }
+  ];
+</script>
 <%- include('../partials/footer') %>

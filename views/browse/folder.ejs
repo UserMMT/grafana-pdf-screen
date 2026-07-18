@@ -2,7 +2,7 @@
 function crumbsUrl(list) { return '/browse/' + server.id + (list.length ? '?crumbs=' + encodeURIComponent(JSON.stringify(list)) : ''); }
 function dashUrl(uid) { return '/browse/' + server.id + '/dashboard/' + uid + (crumbs.length ? '?crumbs=' + encodeURIComponent(JSON.stringify(crumbs)) : ''); }
 %>
-<%- include('../partials/header', { title: 'Browse — ' + server.name, active: 'browse' }) %>
+<%- include('../partials/header', { title: 'Browse — ' + server.name, active: 'browse', pageId: 'browse-folder' }) %>
 <div class="toolbar">
   <h1>
     <a href="<%= crumbsUrl([]) %>">Browse</a> / <%= server.name %>
@@ -40,4 +40,11 @@ function dashUrl(uid) { return '/browse/' + server.id + '/dashboard/' + uid + (c
     <% if (!dashboards.length) { %><tr><td class="muted">No dashboards here.</td></tr><% } %>
   </tbody>
 </table>
+<script>
+  window.__TOUR_STEPS__ = [
+    { selector: '.toolbar h1', title: 'Browsing this server\'s real folder structure', text: 'This walks the same folders you\'d see in Grafana itself — pulled live via its HTTP API, not a cached copy.' },
+    { selector: '.filter-bar', title: 'Or just search', text: 'Search across every dashboard on this server regardless of which folder it\'s in.' },
+    { selector: 'h3', title: 'Click into a dashboard', text: 'Open any dashboard to see all its panels with thumbnails, and create a report job straight from one.' }
+  ];
+</script>
 <%- include('../partials/footer') %>

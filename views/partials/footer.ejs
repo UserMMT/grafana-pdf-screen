@@ -1,3 +1,28 @@
   </main>
+  <script src="/js/tour.js"></script>
+  <script>
+    (function () {
+      var btn = document.getElementById('tour-guide-btn');
+      var pageId = document.body.getAttribute('data-page-id');
+      var steps = window.__TOUR_STEPS__ || [];
+
+      function launch() {
+        if (!steps.length) return;
+        window.GrafanaReportsTour.start(pageId, steps);
+      }
+
+      if (btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          launch();
+        });
+        if (!steps.length) { btn.style.opacity = '0.4'; btn.title = 'No guide on this page yet'; }
+      }
+
+      if (pageId && steps.length && !window.GrafanaReportsTour.hasSeen(pageId)) {
+        setTimeout(launch, 400);
+      }
+    })();
+  </script>
 </body>
 </html>

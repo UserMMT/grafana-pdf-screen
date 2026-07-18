@@ -42,6 +42,26 @@ form.card, div.card { background: #fff; padding: 1.5rem; border-radius: 6px; box
 .filter-bar input[type=text], .filter-bar select { padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
 .bulk-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; }
 .field-error { color: #a11919; font-size: 0.78rem; margin-top: 0.25rem; }
+.tour-overlay { display: none; position: fixed; inset: 0; z-index: 9000; }
+.tour-overlay.tour-active { display: block; }
+.tour-spotlight {
+  position: fixed; z-index: 9001; border-radius: 6px;
+  box-shadow: 0 0 0 9999px rgba(10, 12, 16, 0.65);
+  border: 2px solid #2c5cc5;
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+  pointer-events: none;
+}
+.tour-tooltip {
+  position: fixed; z-index: 9002; background: #fff; border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3); padding: 1rem 1.1rem; width: 300px;
+  transition: top 0.2s ease, left 0.2s ease;
+}
+.tour-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; }
+.tour-text { font-size: 0.85rem; color: #333; line-height: 1.4; margin-bottom: 0.8rem; }
+.tour-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.tour-progress { font-size: 0.75rem; color: #888; }
+.tour-buttons { display: flex; gap: 0.4rem; }
+body.tour-open { overflow: hidden; }
 .panel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
 .panel-card { background: #fff; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); overflow: hidden; }
 .panel-thumb { width: 100%; height: 160px; background: #f0f1f3; display: flex; align-items: center; justify-content: center; }

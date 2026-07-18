@@ -10,7 +10,7 @@ function jobUrl(panel) {
   return '/jobs/new?' + params.toString();
 }
 %>
-<%- include('../partials/header', { title: dashboard ? dashboard.title : 'Dashboard', active: 'browse' }) %>
+<%- include('../partials/header', { title: dashboard ? dashboard.title : 'Dashboard', active: 'browse', pageId: 'browse-dashboard' }) %>
 <div class="toolbar">
   <h1>
     <a href="<%= crumbsUrl([]) %>">Browse</a> / <a href="<%= crumbsUrl(crumbs) %>"><%= server.name %></a>
@@ -42,5 +42,11 @@ function jobUrl(panel) {
   <% }) %>
   <% if (!panels.length) { %><p class="muted">This dashboard has no panels.</p><% } %>
 </div>
+<script>
+  window.__TOUR_STEPS__ = [
+    { selector: '.panel-grid', title: 'Every panel on this dashboard', text: 'Including text/markdown panels — thumbnails are rendered server-side via Grafana\'s image renderer, so your credentials never reach the browser. "No preview" just means rendering isn\'t available for that panel right now.' },
+    { selector: '.panel-card', title: 'Create a job from here', text: 'Panels with a data query get a "Create job for this panel" link (for CSV export). Use the button at the top for a whole-dashboard PDF instead. Either way it takes you to a pre-filled job form.' }
+  ];
+</script>
 <% } %>
 <%- include('../partials/footer') %>

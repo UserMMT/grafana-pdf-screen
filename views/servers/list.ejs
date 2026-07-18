@@ -1,4 +1,4 @@
-<%- include('../partials/header', { title: 'Servers', active: 'servers' }) %>
+<%- include('../partials/header', { title: 'Servers', active: 'servers', pageId: 'servers-list' }) %>
 <div class="toolbar">
   <h1>Grafana Servers</h1>
   <a class="btn primary" href="/servers/new">+ Add server</a>
@@ -27,4 +27,10 @@
     <% } %>
   </tbody>
 </table>
+<script>
+  window.__TOUR_STEPS__ = [
+    { selector: '.brand', title: 'Grafana servers', text: 'A "server" is one Grafana instance this app can talk to — its URL and credentials. Jobs and the dashboard browser both pick from here.' },
+    { selector: 'a[href="/servers/new"]', title: 'Add a server', text: 'You can add as many Grafana instances as you need — each job picks which one it targets. The form has a "Test connection" button before you save.' }
+  ];
+</script>
 <%- include('../partials/footer') %>
