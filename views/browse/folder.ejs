@@ -32,19 +32,53 @@ function dashUrl(uid) { return '/browse/' + server.id + '/dashboard/' + uid + (c
 <% } %>
 
 <h3>Dashboards<% if (!q && !currentFolder) { %> in this folder<% } %></h3>
-<table>
-  <tbody>
-    <% dashboards.forEach(function(d) { %>
-    <tr><td><a href="<%= dashUrl(d.uid) %>"><%= d.title %></a><% if (d.folderTitle && q) { %> <span class="hint">in <%= d.folderTitle %></span><% } %></td></tr>
-    <% }) %>
-    <% if (!dashboards.length) { %><tr><td class="muted">No dashboards here.</td></tr><% } %>
-  </tbody>
-</table>
+<% if (dashboards.length) { %>
+<form method="post" action="/browse/<%= server.id %>/bulk-create" id="bulk-create-form">
+  <div class="bulk-bar">
+    <label class="checkbox-row"><input type="checkbox" id="select-all-dash"> <span>Select all</span></label>
+    <button class="btn small primary" type="submit" id="bulk-create-btn" disabled>Create jobs from selected (<span id="bulk-count">0</span>)</button>
+    <span class="hint">Creates one whole-dashboard PDF job per selected dashboard — for CSV or a specific panel, open the dashboard and use its "Create job" link instead.</span>
+  </div>
+  <table>
+    <tbody>
+      <% dashboards.forEach(function(d) { %>
+      <tr>
+        <td style="width:2rem">
+          <input type="checkbox" class="dash-check" name="dashboards" value='<%= JSON.stringify({ uid: d.uid, title: d.title, path: d.url || ("/d/" + d.uid) }) %>'>
+        </td>
+        <td><a href="<%= dashUrl(d.uid) %>"><%= d.title %></a><% if (d.folderTitle && q) { %> <span class="hint">in <%= d.folderTitle %></span><% } %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</form>
+<% } else { %>
+<table><tbody><tr><td class="muted">No dashboards here.</td></tr></tbody></table>
+<% } %>
 <script>
+  (function () {
+    var selectAll = document.getElementById('select-all-dash');
+    var createBtn = document.getElementById('bulk-create-btn');
+    var countEl = document.getElementById('bulk-count');
+    function checks() { return Array.from(document.querySelectorAll('.dash-check')); }
+    function sync() {
+      var n = checks().filter(function (c) { return c.checked; }).length;
+      countEl.textContent = n;
+      createBtn.disabled = n === 0;
+    }
+    if (selectAll) {
+      selectAll.addEventListener('change', function () {
+        checks().forEach(function (c) { c.checked = selectAll.checked; });
+        sync();
+      });
+    }
+    checks().forEach(function (c) { c.addEventListener('change', sync); });
+  })();
+
   window.__TOUR_STEPS__ = [
     { selector: '.toolbar h1', title: 'Browsing this server\'s real folder structure', text: 'This walks the same folders you\'d see in Grafana itself — pulled live via its HTTP API, not a cached copy.' },
     { selector: '.filter-bar', title: 'Or just search', text: 'Search across every dashboard on this server regardless of which folder it\'s in.' },
-    { selector: 'h3', title: 'Click into a dashboard', text: 'Open any dashboard to see all its panels with thumbnails, and create a report job straight from one.' }
+    { selector: 'h3', title: 'Click into a dashboard', text: 'Open any dashboard to see all its panels with thumbnails, and create a report job straight from one.' }<%- dashboards.length ? ",\n    { selector: '#bulk-create-form .bulk-bar', title: 'Adding many dashboards at once', text: 'Check as many dashboards as you want (or Select all), then create one whole-dashboard PDF job per dashboard in a single step. You will set the shared schedule/settings once on the next screen.' }" : '' %>
   ];
 </script>
 <%- include('../partials/footer') %>

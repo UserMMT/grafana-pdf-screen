@@ -25,7 +25,8 @@ router.get('/', (req, res) => {
     enabled: req.query.enabled === '' || req.query.enabled === undefined ? undefined : req.query.enabled === '1',
   };
   const jobs = jobsDb.list(filters).map(withNextRun);
-  res.render('jobs/list', { jobs, servers: serversDb.list(), filters: req.query });
+  const createdCount = req.query.created ? Number(req.query.created) : 0;
+  res.render('jobs/list', { jobs, servers: serversDb.list(), filters: req.query, createdCount });
 });
 
 router.get('/new', (req, res) => {

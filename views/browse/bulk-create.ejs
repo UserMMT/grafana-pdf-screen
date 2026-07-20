@@ -1,0 +1,111 @@
+<%- include('../partials/header', { title: 'Create jobs — ' + server.name, active: 'browse', pageId: 'browse-bulk-create' }) %>
+<h1>Create <%= dashboards.length %> job<%= dashboards.length === 1 ? '' : 's' %></h1>
+<p class="hint">One whole-dashboard PDF job will be created per dashboard below, all sharing the settings you set here. You can edit any of them individually afterward.</p>
+
+<div class="card" style="max-width:760px; margin-bottom:1rem">
+  <label>Dashboards (<%= dashboards.length %>)</label>
+  <ul style="margin:0.4rem 0 0; padding-left:1.2rem; font-size:0.85rem; max-height:180px; overflow-y:auto">
+    <% dashboards.forEach(function(d) { %><li><%= d.title %></li><% }) %>
+  </ul>
+</div>
+
+<form class="card" method="post" action="/browse/<%= server.id %>/bulk-create/confirm" id="bulk-create-confirm-form" style="max-width:760px">
+  <% dashboards.forEach(function(d) { %>
+    <input type="hidden" name="dashboards" value='<%= JSON.stringify(d) %>'>
+  <% }) %>
+
+  <div class="field">
+    <label>Cron schedule</label>
+    <div class="cron-presets">
+      <button type="button" class="btn small" data-cron="*/5 * * * *">Every 5 min</button>
+      <button type="button" class="btn small" data-cron="0 * * * *">Hourly</button>
+      <button type="button" class="btn small" data-cron="0 8 * * *">Daily 08:00</button>
+      <button type="button" class="btn small" data-cron="0 8 * * 1-5">Weekdays 08:00</button>
+      <button type="button" class="btn small" data-cron="0 8 * * 1">Weekly (Mon 08:00)</button>
+    </div>
+    <input type="text" name="cron_expression" id="cron_expression" required placeholder="0 8 * * *" value="0 8 * * *">
+    <div class="hint">Applied to every job created here.</div>
+    <div class="hint" id="cron_preview">—</div>
+  </div>
+
+  <div class="field checkbox-row">
+    <input type="checkbox" name="enabled" id="enabled" checked>
+    <label for="enabled">Enabled</label>
+  </div>
+
+  <div class="field checkbox-row">
+    <input type="checkbox" name="save_local" id="save_local">
+    <label for="save_local">Save output to disk (otherwise ephemeral in tmp/)</label>
+  </div>
+  <div class="field">
+    <label>Save path (optional, supports {dashboard} {panel} {date} tokens)</label>
+    <input type="text" name="save_path" placeholder="{dashboard}/{date}">
+    <div class="hint">Relative to the output root. Since this creates multiple jobs, using <code>{dashboard}</code> is recommended so each one gets its own subfolder.</div>
+  </div>
+
+  <div class="field">
+    <label>PDF page sizing</label>
+    <select name="page_size_mode" id="page_size_mode">
+      <option value="auto-fit-content" selected>Auto-fit content (measures dashboard height)</option>
+      <option value="fixed-format">Fixed paper format</option>
+    </select>
+  </div>
+  <div class="field" id="pdf_format_field">
+    <label>PDF format</label>
+    <select name="pdf_format">
+      <% ['A4','A3','Letter','Legal','Tabloid'].forEach(function(f) { %>
+        <option value="<%= f %>"><%= f %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label>PDF width override (px, blank = server default)</label>
+    <input type="number" name="pdf_width">
+  </div>
+
+  <div class="field">
+    <label>Time range override (optional, e.g. now-24h / now)</label>
+    <div style="display:flex; gap:0.5rem">
+      <input type="text" name="time_from" placeholder="now-24h">
+      <input type="text" name="time_to" placeholder="now">
+    </div>
+  </div>
+
+  <button class="btn primary" type="submit">Create <%= dashboards.length %> job<%= dashboards.length === 1 ? '' : 's' %></button>
+  <a class="btn" href="/browse/<%= server.id %>">Cancel</a>
+</form>
+
+<script>
+  var cronInput = document.getElementById('cron_expression');
+  var cronPreview = document.getElementById('cron_preview');
+  function updateCronPreview() {
+    var expr = cronInput.value.trim();
+    if (!expr) { cronPreview.textContent = '—'; return; }
+    fetch('/jobs/cron-preview?expr=' + encodeURIComponent(expr))
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.ok) { cronPreview.textContent = res.message; cronPreview.style.color = '#a11919'; return; }
+        cronPreview.style.color = '#777';
+        cronPreview.textContent = 'Next runs: ' + res.next.map(function (d) { return new Date(d).toLocaleString(); }).join('  •  ');
+      })
+      .catch(function () { cronPreview.textContent = '—'; });
+  }
+  var cronTimer = null;
+  cronInput.addEventListener('input', function () {
+    clearTimeout(cronTimer);
+    cronTimer = setTimeout(updateCronPreview, 300);
+  });
+  document.querySelectorAll('.cron-presets [data-cron]').forEach(function (btn) {
+    btn.addEventListener('click', function () { cronInput.value = btn.dataset.cron; updateCronPreview(); });
+  });
+  updateCronPreview();
+
+  var pageSizeModeSelect = document.getElementById('page_size_mode');
+  var pdfFormatField = document.getElementById('pdf_format_field');
+  function syncPdfFormatVisibility() {
+    pdfFormatField.style.display = pageSizeModeSelect.value === 'fixed-format' ? 'block' : 'none';
+  }
+  pageSizeModeSelect.addEventListener('change', syncPdfFormatVisibility);
+  syncPdfFormatVisibility();
+</script>
+<%- include('../partials/footer') %>

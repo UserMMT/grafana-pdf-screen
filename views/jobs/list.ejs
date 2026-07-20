@@ -1,4 +1,9 @@
 <%- include('../partials/header', { title: 'Jobs', active: 'jobs', pageId: 'jobs-list' }) %>
+<% if (createdCount > 0) { %>
+  <div class="hint" style="background:#dcf5e0; color:#196c2e; padding:0.6rem 0.9rem; border-radius:4px; margin-bottom:1rem">
+    Created <%= createdCount %> job<%= createdCount === 1 ? '' : 's' %>.
+  </div>
+<% } %>
 <div class="toolbar">
   <h1>Report Jobs</h1>
   <a class="btn primary" href="/jobs/new">+ New job</a>

@@ -56,6 +56,22 @@ public/   css/js, vanilla JS only
   panel thumbnails (proxied server-side via Grafana's `/render/d-solo` image endpoint so credentials never
   reach the browser, graceful "No preview" fallback if rendering fails/unavailable), and "Create job from
   this panel" links that prefill the job form
+- Bulk-create jobs from the Browse folder view: check multiple dashboards (or "Select all"), set shared
+  cron/save/PDF-sizing settings once on `/browse/:serverId/bulk-create`, and one whole-dashboard PDF job
+  per dashboard is created on confirm (`POST .../bulk-create/confirm`). Deliberately PDF-only — CSV needs
+  a specific panel per job, which doesn't generalize across a batch of different dashboards; CSV/panel
+  jobs still go through the regular per-job form. Selected dashboards are carried between the two steps
+  as JSON-encoded hidden `dashboards` fields (uid/title/path — `path` comes straight from Grafana search
+  results' `url` field, no extra per-dashboard API call needed).
+- Interactive in-app guide (`public/js/tour.js`, `🧭 Guide` button in the header): a small vanilla-JS
+  tour engine (spotlight + positioned tooltip, no new dependency) with per-page step arrays defined via
+  `window.__TOUR_STEPS__` in each view. Auto-fires once per page (tracked in `localStorage`), replayable
+  anytime via the header button. Wired on jobs list/form, servers list, runs list, browse folder/dashboard.
+  **Gotcha hit while building this**: injecting page-specific JS into a `window.__TOUR_STEPS__ = [...]`
+  `<script>` block must use EJS's `<%- %>` (raw), not `<%= %>` (HTML-escaped) — escaped output turns `'`
+  into `&#39;` and silently breaks the script's syntax. `<%= %>` is still correct for the same kind of
+  JSON payload when it's going into an HTML attribute (e.g. a checkbox `value="..."`), just not inside
+  a `<script>` tag. Both patterns exist side by side in `views/browse/folder.ejs` — don't conflate them.
 
 ## Known environment quirk (this sandbox only, not a real deployment concern)
 
