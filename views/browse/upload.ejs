@@ -1,0 +1,64 @@
+<%- include('../partials/header', { title: 'Upload dashboards — ' + server.name, active: 'browse', pageId: 'browse-upload' }) %>
+<div class="toolbar">
+  <h1>Upload dashboard JSON to <%= server.name %></h1>
+  <a class="btn" href="/browse/<%= server.id %>">Back to browse</a>
+</div>
+
+<% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+<form class="card" method="post" action="/browse/<%= server.id %>/upload" enctype="multipart/form-data" style="max-width:640px">
+  <div class="field">
+    <label>Dashboard JSON file(s)</label>
+    <input type="file" name="files" accept="application/json,.json" multiple required>
+    <div class="hint">Select one or many exported dashboard JSON files (either the bare dashboard object, or a full export with a top-level "dashboard" key).</div>
+  </div>
+
+  <div class="field">
+    <label>Destination folder</label>
+    <select name="folder_uid">
+      <option value="">General (root)</option>
+      <% folders.forEach(function(f) { %>
+        <option value="<%= f.uid %>"><%= f.title %></option>
+      <% }) %>
+    </select>
+    <div class="hint">Only top-level folders are listed here. To upload into a nested folder, upload to General/a top-level folder first, then move it in Grafana.</div>
+  </div>
+
+  <div class="field checkbox-row">
+    <input type="checkbox" name="overwrite" id="overwrite">
+    <label for="overwrite">Overwrite if a dashboard with the same UID/title already exists</label>
+  </div>
+  <div class="hint" style="margin-top:-0.5rem; margin-bottom:1rem">Leave unchecked to fail safely instead of silently replacing an existing dashboard.</div>
+
+  <button class="btn primary" type="submit">Upload</button>
+</form>
+
+<% if (results) { %>
+<h3 style="margin-top:1.5rem">Results</h3>
+<table>
+  <thead><tr><th>File</th><th>Status</th><th>Detail</th></tr></thead>
+  <tbody>
+    <% results.forEach(function(r) { %>
+    <tr>
+      <td><%= r.filename %></td>
+      <td><span class="status <%= r.ok ? 'success' : 'error' %>"><%= r.ok ? 'uploaded' : 'failed' %></span></td>
+      <td>
+        <% if (r.ok) { %>
+          uid <code><%= r.uid %></code><% if (r.url) { %> — <a href="<%= r.url %>" target="_blank" rel="noopener">open in Grafana</a><% } %>
+        <% } else { %>
+          <%= r.message %>
+        <% } %>
+      </td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } %>
+
+<script>
+  window.__TOUR_STEPS__ = [
+    { selector: 'input[name="files"]', title: 'Push dashboards into Grafana', text: 'This is the reverse of the Browse page — instead of reading from Grafana, it writes dashboard JSON files (single or multiple) to this server via its own import API.' },
+    { selector: '[name="overwrite"]', title: 'Overwrite is off by default', text: 'If a dashboard with the same UID/title already exists, the upload fails loudly instead of silently replacing it. Check this box only when you actually intend to replace an existing dashboard.' }
+  ];
+</script>
+<%- include('../partials/footer') %>

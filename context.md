@@ -63,6 +63,24 @@ public/   css/js, vanilla JS only
   jobs still go through the regular per-job form. Selected dashboards are carried between the two steps
   as JSON-encoded hidden `dashboards` fields (uid/title/path — `path` comes straight from Grafana search
   results' `url` field, no extra per-dashboard API call needed).
+- Upload dashboard JSON *to* Grafana (`/browse/:serverId/upload`, first "write" direction the app has —
+  everything else only reads from Grafana). Single or multiple `.json` files via a real multipart file
+  input (added `multer`, memory storage, 5MB/20-file limits). Accepts either a bare dashboard object or a
+  full export `{ dashboard, meta }` shape — unwraps `.dashboard` if present. Posts to Grafana's
+  `POST /api/dashboards/db` per file via `grafana/client.js`'s `createOrUpdateDashboard()`, always nulling
+  the uploaded file's `dashboard.id` (a stale numeric id from another instance is meaningless here) while
+  preserving `uid` so Grafana's own conflict detection can do its job. `overwrite` defaults to **off** —
+  Grafana rejects with 412 instead of silently replacing an existing dashboard unless the checkbox is
+  ticked. Folder picker only lists top-level folders (v1 scope; nested-folder upload means uploading to a
+  top-level folder then moving it in Grafana). Results render per-file (success + uid/link, or Grafana's
+  own rejection message surfaced instead of a generic HTTP error).
+  **Not tested against a real write** — verified everything *except* the actual Grafana POST by
+  monkey-patching `global.fetch` to intercept calls to `/api/dashboards/db` (confirmed: correct payload
+  shape for both dashboard-JSON shapes, `id` nulled, `overwrite`/`folderUid` correctly threaded through,
+  per-file error isolation, Grafana's own error message surfaced). Deliberately did not run a real create
+  against `play.grafana.org` — it's a public shared instance I don't own, and writing to it would be
+  inappropriate regardless of test intent. **This means the actual live write path is unverified** —
+  test it against a real (ideally disposable/test) Grafana instance before relying on it.
 - Interactive in-app guide (`public/js/tour.js`, `🧭 Guide` button in the header): a small vanilla-JS
   tour engine (spotlight + positioned tooltip, no new dependency) with per-page step arrays defined via
   `window.__TOUR_STEPS__` in each view. Auto-fires once per page (tracked in `localStorage`), replayable

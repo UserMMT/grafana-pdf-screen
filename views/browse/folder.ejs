@@ -8,6 +8,7 @@ function dashUrl(uid) { return '/browse/' + server.id + '/dashboard/' + uid + (c
     <a href="<%= crumbsUrl([]) %>">Browse</a> / <%= server.name %>
     <% crumbs.forEach(function(c, i) { %> / <a href="<%= crumbsUrl(crumbs.slice(0, i + 1)) %>"><%= c.title %></a><% }) %>
   </h1>
+  <a class="btn" href="/browse/<%= server.id %>/upload">⬆ Upload dashboard JSON</a>
 </div>
 
 <form class="filter-bar" method="get" action="/browse/<%= server.id %>">

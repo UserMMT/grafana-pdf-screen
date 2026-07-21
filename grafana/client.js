@@ -112,6 +112,25 @@ function fetchDashboardByUid(server, uid) {
   return apiFetch(server, `/api/dashboards/uid/${encodeURIComponent(uid)}`);
 }
 
+/**
+ * Creates or updates a dashboard on the given server via Grafana's dashboard
+ * import API. `dashboard` is the raw dashboard JSON (from a Grafana export -
+ * either the bare dashboard object, or the { dashboard, meta } shape Grafana's
+ * own API returns; callers should unwrap the `.dashboard` key first if present).
+ * `overwrite` must be explicitly true to replace an existing dashboard with a
+ * matching uid/title - Grafana itself rejects the write with a 412 otherwise,
+ * which is the desired safe default (fail loud, not silently clobber).
+ */
+function createOrUpdateDashboard(server, { dashboard, folderUid, overwrite, message }) {
+  const payload = {
+    dashboard: { ...dashboard, id: null }, // a stale numeric id from another instance is never meaningful here
+    overwrite: !!overwrite,
+    message: message || 'Uploaded via Grafana Reports app',
+  };
+  if (folderUid) payload.folderUid = folderUid;
+  return apiFetch(server, '/api/dashboards/db', { method: 'POST', body: payload });
+}
+
 function postDsQuery(server, payload) {
   return apiFetch(server, '/api/ds/query', { method: 'POST', body: payload });
 }
@@ -180,6 +199,7 @@ module.exports = {
   buildAuthHeaders,
   buildDashboardUrl,
   fetchDashboardByUid,
+  createOrUpdateDashboard,
   postDsQuery,
   searchDashboards,
   listFolders,

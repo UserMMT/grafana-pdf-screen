@@ -1,12 +1,15 @@
 'use strict';
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 
 const serversDb = require('../db/servers');
 const jobsDb = require('../db/jobs');
 const client = require('../grafana/client');
 const { summarizePanels } = require('../grafana/panels');
 const scheduler = require('../scheduler');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 20 } });
 
 function parseCrumbs(raw) {
   if (!raw) return [];
@@ -131,6 +134,53 @@ router.post('/:serverId/bulk-create/confirm', (req, res) => {
   });
 
   res.redirect(`/jobs?created=${created.length}`);
+});
+
+router.get('/:serverId/upload', async (req, res) => {
+  const server = serversDb.getById(req.params.serverId);
+  if (!server) return res.status(404).send('Server not found');
+  try {
+    const folders = await client.listFolders(server, undefined);
+    res.render('browse/upload', { server, folders, results: null, error: null });
+  } catch (err) {
+    res.render('browse/upload', { server, folders: [], results: null, error: err.message });
+  }
+});
+
+// Pushes one or more uploaded dashboard JSON files (single or multiple) to this
+// Grafana server via /api/dashboards/db. Accepts either the bare dashboard
+// object or the { dashboard, meta } shape Grafana's own export/API returns.
+router.post('/:serverId/upload', upload.array('files', 20), async (req, res) => {
+  const server = serversDb.getById(req.params.serverId);
+  if (!server) return res.status(404).send('Server not found');
+
+  const folderUid = req.body.folder_uid || undefined;
+  const overwrite = req.body.overwrite === 'on';
+  const files = req.files || [];
+
+  const results = [];
+  for (const file of files) {
+    try {
+      const parsed = JSON.parse(file.buffer.toString('utf8'));
+      const dashboard = parsed && parsed.dashboard ? parsed.dashboard : parsed;
+      if (!dashboard || typeof dashboard !== 'object' || Array.isArray(dashboard)) {
+        throw new Error('does not look like a dashboard JSON export');
+      }
+      const response = await client.createOrUpdateDashboard(server, { dashboard, folderUid, overwrite });
+      results.push({ filename: file.originalname, ok: true, uid: response.uid, url: response.url });
+    } catch (err) {
+      const message = err instanceof client.GrafanaApiError && err.body?.message ? err.body.message : err.message;
+      results.push({ filename: file.originalname, ok: false, message });
+    }
+  }
+
+  let folders = [];
+  try {
+    folders = await client.listFolders(server, undefined);
+  } catch {
+    // non-fatal - the results table is what matters after a submit
+  }
+  res.render('browse/upload', { server, folders, results, error: null });
 });
 
 // Server-side proxy for Grafana's panel image renderer: credentials never
