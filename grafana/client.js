@@ -23,6 +23,39 @@ function baseUrl(server) {
   return server.base_url.replace(/\/+$/, '');
 }
 
+// The origin (scheme+host+port) part of base_url, e.g. "https://host:3000"
+// out of "https://host:3000/grafana".
+function originOf(url) {
+  const m = url.match(/^https?:\/\/[^/]+/);
+  return m ? m[0] : url;
+}
+
+// The sub-path part of base_url, e.g. "/grafana" out of "https://host/grafana",
+// or "" if Grafana is served from the root.
+function subPathOf(server) {
+  const base = baseUrl(server);
+  return base.slice(originOf(base).length);
+}
+
+/**
+ * Joins base_url with a path Grafana itself returned (dashboard_path, usually
+ * sourced from the API's `meta.url`/search `url` fields). When Grafana is
+ * configured with a sub-path (root_url like "https://host/grafana/"), those
+ * API responses already include that sub-path prefix - and so does base_url,
+ * since that's how a user would naturally configure "the URL to reach this
+ * Grafana instance". Concatenating both blindly doubles the sub-path
+ * (".../grafana/grafana/d/..."). Detect that overlap and use just the origin
+ * in that case instead of the full base_url.
+ */
+function joinGrafanaPath(server, path) {
+  const base = baseUrl(server);
+  const sub = subPathOf(server);
+  if (sub && path.startsWith(sub + '/')) {
+    return originOf(base) + path;
+  }
+  return base + path;
+}
+
 /**
  * Builds the browser-facing dashboard URL (used by puppeteer for PDF rendering):
  * {base_url}{dashboard_path}?var-x=y&from=...&to=...&kiosk
@@ -39,7 +72,7 @@ function buildDashboardUrl(server, job, { variables }) {
   params.set('kiosk', '');
   const qs = params.toString().replace(/=$/, '').replace(/=&/g, '&');
   const dashboardPath = job.dashboard_path || `/d/${job.dashboard_uid}`;
-  return `${baseUrl(server)}${dashboardPath}?${qs}`;
+  return `${joinGrafanaPath(server, dashboardPath)}?${qs}`;
 }
 
 async function apiFetch(server, urlPath, { method = 'GET', body } = {}) {

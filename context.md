@@ -97,6 +97,17 @@ also lives in that sibling repo. If working from a session rooted directly in th
   immediately with 0 and a generic `document.body.scrollHeight` fallback is used instead of hanging or
   producing a near-empty PDF. **The same fragility existed in `grafana_autoscroll_panel.json` and has
   now been fixed there too** — see below.
+- **Sub-path-hosted Grafana instances doubled their path segment** (e.g. `.../grafana/grafana/d/...`)
+  when generating PDFs. Root cause: `job.dashboard_path` is populated from Grafana's own `meta.url` /
+  search-result `url` fields, which already include any configured sub-path (`root_url` with
+  `serve_from_sub_path`) — and a user's configured `base_url` for that server *also* naturally includes
+  that same sub-path (it's "the URL you'd type to reach Grafana"). `buildDashboardUrl` in
+  `grafana/client.js` used to blindly concatenate the two. Fixed with `joinGrafanaPath()`: it detects
+  when `dashboard_path` already starts with `base_url`'s sub-path portion and uses just the origin in
+  that case instead of the full `base_url`. Verified with both the doubling scenario and the normal
+  root-served case (unaffected, `sub` is empty so it takes the old code path). If a similar
+  double-prepending bug ever shows up elsewhere, check whether the same fields (`meta.url`/search `url`)
+  are being concatenated onto `base_url` a second time somewhere new.
 - **`node:sqlite` CHECK constraints can't be altered in place** — widening `job_runs.trigger_type` to
   include `'webhook'` required detecting the old constraint via `sqlite_master.sql` and recreating the
   table (see `db/migrate.js`). Any future enum-like CHECK change needs the same treatment.
