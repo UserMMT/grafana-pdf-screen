@@ -122,8 +122,16 @@ function fetchDashboardByUid(server, uid) {
  * which is the desired safe default (fail loud, not silently clobber).
  */
 function createOrUpdateDashboard(server, { dashboard, folderUid, overwrite, message }) {
+  const cleanDashboard = { ...dashboard };
+  // A stale numeric id from another instance is never meaningful here, so it's
+  // dropped rather than nulled: some dashboards (Grafana's newer k8s-style
+  // unified-storage resource schema, where identity lives in metadata instead)
+  // reject the "id" property outright even when its value is null - "must not
+  // include an id on the root element". Deleting the key is safe for both the
+  // classic schema (absent id == create new, same as null) and this stricter one.
+  delete cleanDashboard.id;
   const payload = {
-    dashboard: { ...dashboard, id: null }, // a stale numeric id from another instance is never meaningful here
+    dashboard: cleanDashboard,
     overwrite: !!overwrite,
     message: message || 'Uploaded via Grafana Reports app',
   };
