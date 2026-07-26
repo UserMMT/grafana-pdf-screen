@@ -2,12 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const { ZipArchive } = require('archiver');
 
 const serversDb = require('../db/servers');
 const jobsDb = require('../db/jobs');
 const client = require('../grafana/client');
+const csvApi = require('../grafana/csvApi');
 const { summarizePanels } = require('../grafana/panels');
 const scheduler = require('../scheduler');
+const { safeSegment } = require('../grafana/outputPath');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 20 } });
 
@@ -69,6 +72,47 @@ router.get('/:serverId/dashboard/:uid', async (req, res) => {
       server, crumbs, dashboard: null, panels: [], dashboardUid: req.params.uid, dashboardPath: null, slug: null, error: err.message,
     });
   }
+});
+
+// Ad-hoc (not scheduled) export: every data panel on this dashboard, queried
+// live via the same /api/ds/query path jobs use, bundled into one zip.
+router.get('/:serverId/dashboard/:uid/download-all-csv', async (req, res) => {
+  const server = serversDb.getById(req.params.serverId);
+  if (!server) return res.status(404).send('Server not found');
+
+  let dashboardName, results;
+  try {
+    ({ dashboardName, results } = await csvApi.fetchAllPanelsCsv(server, req.params.uid, {}));
+  } catch (err) {
+    return res.status(502).send(`Failed to export: ${err.message}`);
+  }
+
+  const ok = results.filter((r) => r.ok);
+  const failed = results.filter((r) => !r.ok);
+  if (!ok.length) {
+    return res.status(502).send(`No panel could be exported as CSV:\n${failed.map((r) => `${r.panelTitle}: ${r.message}`).join('\n')}`);
+  }
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${safeSegment(dashboardName)}.csv.zip"`);
+
+  const archive = new ZipArchive({ zlib: { level: 9 } });
+  archive.on('error', (err) => {
+    console.error('zip stream error:', err);
+    res.end();
+  });
+  archive.pipe(res);
+
+  ok.forEach((r) => {
+    // panelId is always unique per dashboard, so suffixing with it guarantees
+    // distinct filenames even when two panels share a title.
+    const name = `${safeSegment(r.panelTitle) || 'panel'}-${r.panelId}.csv`;
+    archive.append(r.csv, { name });
+  });
+  if (failed.length) {
+    archive.append(failed.map((r) => `${r.panelTitle}: ${r.message}`).join('\n'), { name: '_errors.txt' });
+  }
+  archive.finalize();
 });
 
 function parseSelectedDashboards(body) {

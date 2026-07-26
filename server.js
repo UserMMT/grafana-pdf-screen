@@ -13,6 +13,7 @@ const runsRouter = require('./routes/runs');
 const dashboardsRouter = require('./routes/dashboards');
 const webhooksRouter = require('./routes/webhooks');
 const browseRouter = require('./routes/browse');
+const compareRouter = require('./routes/compare');
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -28,6 +29,7 @@ app.use('/runs', runsRouter);
 app.use('/api', dashboardsRouter);
 app.use('/webhooks', webhooksRouter);
 app.use('/browse', browseRouter);
+app.use('/compare', compareRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);

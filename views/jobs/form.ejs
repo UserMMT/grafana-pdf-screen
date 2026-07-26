@@ -43,6 +43,16 @@
     <label>Variables</label>
     <div id="variables_container" class="hint">Select a dashboard to load its template variables.</div>
     <input type="hidden" name="variables_json" id="variables_json" value='<%- v.variables_json || "{}" %>'>
+
+    <div style="margin-top:0.6rem">
+      <label style="font-weight:400; font-size:0.8rem">Or paste a Grafana dashboard URL with variables already set</label>
+      <div style="display:flex; gap:0.5rem">
+        <input type="text" id="variables_url_paste" placeholder="https://.../d/uid/slug?var-datacenter=eu&var-server=web-1&...">
+        <button type="button" class="btn small" id="variables_url_apply">Apply</button>
+      </div>
+      <div class="hint">Useful when variables are chained/dependent on each other — pick the values in Grafana itself (where cascading works correctly), then copy the resulting URL from your browser's address bar here.</div>
+      <div class="hint" id="variables_url_status"></div>
+    </div>
   </div>
 
   <div class="field">

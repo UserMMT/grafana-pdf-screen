@@ -12,6 +12,7 @@
     "legacy-proxy": "node index.js"
   },
   "dependencies": {
+    "archiver": "^8.0.0",
     "cron-parser": "^4.9.0",
     "dotenv": "^16.0.3",
     "ejs": "^3.1.10",

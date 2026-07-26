@@ -17,7 +17,12 @@ function jobUrl(panel) {
     <% crumbs.forEach(function(c, i) { %> / <a href="<%= crumbsUrl(crumbs.slice(0, i + 1)) %>"><%= c.title %></a><% }) %>
     <% if (dashboard) { %> / <%= dashboard.title %><% } %>
   </h1>
-  <% if (dashboard) { %><a class="btn primary" href="<%= jobUrl(null) %>">Create job for whole dashboard</a><% } %>
+  <% if (dashboard) { %>
+    <div>
+      <a class="btn primary" href="<%= jobUrl(null) %>">Create job for whole dashboard</a>
+      <a class="btn" href="/browse/<%= server.id %>/dashboard/<%= dashboardUid %>/download-all-csv">⬇ Download all panel CSVs (.zip)</a>
+    </div>
+  <% } %>
 </div>
 
 <% if (error) { %><div class="error-box"><%= error %></div><% } %>
@@ -45,7 +50,8 @@ function jobUrl(panel) {
 <script>
   window.__TOUR_STEPS__ = [
     { selector: '.panel-grid', title: 'Every panel on this dashboard', text: 'Including text/markdown panels — thumbnails are rendered server-side via Grafana\'s image renderer, so your credentials never reach the browser. "No preview" just means rendering isn\'t available for that panel right now.' },
-    { selector: '.panel-card', title: 'Create a job from here', text: 'Panels with a data query get a "Create job for this panel" link (for CSV export). Use the button at the top for a whole-dashboard PDF instead. Either way it takes you to a pre-filled job form.' }
+    { selector: '.panel-card', title: 'Create a job from here', text: 'Panels with a data query get a "Create job for this panel" link (for CSV export). Use the button at the top for a whole-dashboard PDF instead. Either way it takes you to a pre-filled job form.' },
+    { selector: '.toolbar a[href*="download-all-csv"]', title: 'Or just grab everything right now', text: 'This is a one-off, unscheduled export — every data panel\'s current data queried live and zipped up, no job needed.' }
   ];
 </script>
 <% } %>

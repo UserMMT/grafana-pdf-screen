@@ -91,6 +91,66 @@
     variablesJsonInput.value = JSON.stringify(out);
   }
 
+  function findVarInput(name) {
+    var inputs = variablesContainer.querySelectorAll('[data-var-name]');
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].dataset.varName === name) return inputs[i];
+    }
+    return null;
+  }
+
+  // Extracts var-* query params from a pasted Grafana dashboard URL (or bare
+  // query string). Grafana resolves chained/dependent variables correctly in
+  // its own UI - this lets that resolution be reused here instead of
+  // reimplementing cascading-variable logic.
+  function parseVarParamsFromUrl(raw) {
+    var qs = raw;
+    var qIndex = qs.indexOf('?');
+    if (qIndex !== -1) qs = qs.slice(qIndex + 1);
+    var params = new URLSearchParams(qs);
+    var out = {};
+    params.forEach(function (value, key) {
+      if (key.indexOf('var-') === 0) out[key.slice(4)] = value;
+    });
+    return out;
+  }
+
+  var urlPasteInput = document.getElementById('variables_url_paste');
+  var urlApplyBtn = document.getElementById('variables_url_apply');
+  var urlStatus = document.getElementById('variables_url_status');
+
+  function applyVarsFromUrl() {
+    var extracted = parseVarParamsFromUrl(urlPasteInput.value.trim());
+    var names = Object.keys(extracted);
+    if (!names.length) {
+      urlStatus.style.color = '#a11919';
+      urlStatus.textContent = 'No var-* parameters found in that URL.';
+      return;
+    }
+    var matched = 0;
+    names.forEach(function (name) {
+      var input = findVarInput(name);
+      if (input) { input.value = extracted[name]; matched++; }
+    });
+    // Merge directly into the hidden field rather than calling updateVariablesJson(),
+    // which only reads currently-rendered inputs and would silently drop any
+    // variable name the dashboard picker doesn't already know about.
+    var current = {};
+    try { current = JSON.parse(variablesJsonInput.value || '{}'); } catch (e) { current = {}; }
+    Object.assign(current, extracted);
+    variablesJsonInput.value = JSON.stringify(current);
+
+    urlStatus.style.color = '#196c2e';
+    var extra = names.length - matched;
+    urlStatus.textContent = 'Applied ' + names.length + ' variable' + (names.length === 1 ? '' : 's')
+      + (extra > 0 ? ' (' + extra + ' saved but not shown below - not in this dashboard\'s known variable list)' : '') + '.';
+  }
+
+  urlApplyBtn.addEventListener('click', applyVarsFromUrl);
+  urlPasteInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); applyVarsFromUrl(); }
+  });
+
   function loadDashboardDetail(uid, preselectPanelId) {
     if (!currentServerId() || !uid) return;
     fetch('/api/servers/' + currentServerId() + '/dashboards/' + encodeURIComponent(uid))

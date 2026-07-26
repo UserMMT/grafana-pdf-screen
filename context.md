@@ -97,6 +97,55 @@ public/   css/js, vanilla JS only
   into `&#39;` and silently breaks the script's syntax. `<%= %>` is still correct for the same kind of
   JSON payload when it's going into an HTML attribute (e.g. a checkbox `value="..."`), just not inside
   a `<script>` tag. Both patterns exist side by side in `views/browse/folder.ejs` — don't conflate them.
+- **Auto-set variables from a pasted Grafana URL** (job form, "Variables" section). Real problem this
+  solves: many dashboards have chained/dependent template variables (variable B's options depend on
+  variable A's value) - Grafana resolves that correctly in its own UI, reimplementing that logic here
+  would be fragile. Instead: pick the values in Grafana itself, copy the resulting URL, paste it into the
+  new field, click Apply - it parses `var-*` query params and populates matching variable inputs. Any
+  `var-*` name not among the dashboard's currently-known variables is still merged into the saved
+  `variables_json` (not dropped) so it's not lost, just not shown as a visible input. Verified live against
+  a real dashboard with chained variables (`kubernetes cluster monitoring` on play.grafana.org): matched
+  vars update visibly, untouched vars stay untouched, unmatched var names are preserved in the hidden JSON.
+- **Download all panel CSVs for one dashboard as a zip** (`/browse/:serverId/dashboard/:uid/download-all-csv`,
+  linked from the dashboard panel-grid page). Ad-hoc/unscheduled - queries every data panel live via the
+  same `/api/ds/query` path jobs use (`grafana/csvApi.js`'s new `fetchAllPanelsCsv()`), one dashboard fetch
+  shared across all panels. Per-panel failures (unsupported datasource type, etc.) don't fail the whole
+  export - they land in a `_errors.txt` inside the zip alongside whatever did succeed; a 502 only happens
+  if *every* panel failed. **Dependency gotcha**: `archiver@8.0.0` (the version installed by a plain
+  `npm install archiver` at the time of writing) is a breaking redesign from the classic
+  `archiver('zip', opts)` factory-function API (which is what most existing docs/examples/training data
+  describe) to `new (require('archiver').ZipArchive)(opts)`. Using the old factory-call syntax throws
+  `TypeError: archiver is not a function` - caught during testing, not from prior knowledge. Check
+  `node_modules/archiver/package.json`'s version before assuming which API shape applies if this ever
+  needs touching again. Verified end-to-end with a mocked Grafana backend (play.grafana.org's public
+  datasources are all `testdata`, which the CSV interpolator gate deliberately rejects, so it can't
+  exercise the success path) - one `mssql`-typed panel and one `testdata`-typed panel, confirmed the real
+  CSV lands in the zip correctly-named and the unsupported one's error lands in `_errors.txt`.
+- **Compare two dashboards with a client-side LLM** (`/compare`, `routes/compare.js`,
+  `public/js/compare.js`, `views/compare.ejs`). Two independent pickers (same widget pattern as the job
+  form's, but not refactored into a shared module - deliberately left job-form.js untouched to avoid
+  regression risk to an already-verified flow; if a third page needs this picker, factor it out then).
+  Each side resolves to a server+dashboard+panel+variables; `GET /compare/data` fetches that panel's rows
+  as JSON (new `csvApi.fetchPanelData()`, capped at 80 rows server-side to fit a small model's context
+  window) - **not** a CSV file, since the browser needs structured data to hand to the model, not a
+  download. The comparison itself runs **entirely client-side** via WebLLM
+  (`import('https://esm.run/@mlc-ai/web-llm')`, no bundler needed, consistent with the project's no-build
+  vanilla-JS approach) using `Llama-3.2-1B-Instruct-q4f16_1-MLC` - chosen specifically as one of the
+  smaller prebuilt WebLLM models to keep the first-run download closer to ~900MB than the several GB
+  larger instruct models would need. Grafana data fetched by this app's server never leaves the browser
+  from that point on; nothing is sent to an external AI API. Gated on `navigator.gpu` with a clear
+  unsupported-browser message if absent.
+  **Verification boundary, explicit**: fully verified the data-fetch path (both the real error case against
+  play.grafana.org's unsupported `testdata` panels, and the success case via a mocked mssql-typed panel),
+  the two-sided picker UI, client-side validation, and confirmed via the mocked backend that a successful
+  fetch on both sides correctly reaches and triggers the WebLLM import call (status text transitions
+  `Fetching data...` → `Loading model...` with no error). **Did not** let an actual model download/inference
+  run - `navigator.gpu` turned out to be genuinely available in this sandbox's Chromium, so the moment the
+  import call fires it's a real ~900MB download; deliberately navigated away to cancel it rather than let
+  a large uncontrolled download run in this environment. The actual WebLLM engine creation and streamed
+  chat completion (`engine.chat.completions.create(...)`) are implemented per WebLLM's documented API but
+  **not exercised end-to-end** - test that part in a real browser session before trusting the narration
+  output itself, only the plumbing up to that point is confirmed working.
 
 ## Known environment quirk (this sandbox only, not a real deployment concern)
 

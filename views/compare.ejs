@@ -1,0 +1,68 @@
+<%- include('partials/header', { title: 'Compare dashboards', active: 'compare', pageId: 'compare' }) %>
+<h1>Compare dashboards</h1>
+<div class="hint" style="margin-bottom:1rem">
+  Pick two data sources below (same or different dashboards, panels, servers, or just different variable values —
+  e.g. prod vs staging, or this week vs last week) and get a live, narrated comparison. Runs entirely in
+  <strong>your browser</strong> via WebGPU (WebLLM) — the data never leaves your machine, not even to an AI API.
+  Requires a WebGPU-capable browser (current Chrome or Edge) and downloads a model (roughly 1GB) to your
+  browser's cache the first time you use it.
+</div>
+
+<% if (!servers.length) { %>
+  <div class="error-box">No Grafana servers configured yet. <a href="/servers/new">Add one first</a>.</div>
+<% } else { %>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+  <% ['a', 'b'].forEach(function(side) { %>
+  <div class="card" data-side="<%= side %>">
+    <div class="field">
+      <label>Label</label>
+      <input type="text" class="cmp-label" placeholder="<%= side === 'a' ? 'e.g. Prod' : 'e.g. Staging' %>" value="<%= side === 'a' ? 'A' : 'B' %>">
+    </div>
+    <div class="field">
+      <label>Server</label>
+      <select class="cmp-server">
+        <% servers.forEach(function(s) { %><option value="<%= s.id %>"><%= s.name %></option><% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Dashboard</label>
+      <input type="text" class="cmp-dashboard-search" placeholder="Search dashboards by title...">
+      <select class="cmp-dashboard-select" size="5" style="margin-top:0.4rem"></select>
+      <div class="hint">Selected: <span class="cmp-dashboard-label">none</span></div>
+    </div>
+    <div class="field">
+      <label>Panel</label>
+      <select class="cmp-panel-select"><option value="">— pick a dashboard first —</option></select>
+    </div>
+    <div class="field">
+      <label>Variables</label>
+      <div class="cmp-variables hint">Select a dashboard to load its template variables.</div>
+    </div>
+  </div>
+  <% }) %>
+</div>
+
+<div style="margin-top:1rem">
+  <button class="btn primary" id="cmp-run-btn">Compare</button>
+  <span class="hint" id="cmp-status"></span>
+</div>
+
+<div id="cmp-progress-wrap" style="display:none; margin-top:1rem">
+  <div style="background:#e5e7eb; border-radius:4px; height:10px; overflow:hidden">
+    <div id="cmp-progress-bar" style="background:#2c5cc5; height:100%; width:0%; transition:width 0.2s"></div>
+  </div>
+  <div class="hint" id="cmp-progress-text"></div>
+</div>
+
+<div class="card" id="cmp-result-card" style="display:none; margin-top:1rem; max-width:none; white-space:pre-wrap; font-size:0.9rem; line-height:1.5"></div>
+
+<script>
+  window.__TOUR_STEPS__ = [
+    { selector: '.card[data-side="a"]', title: 'Two independent data sources', text: 'Each side picks its own server, dashboard, panel, and variables — compare completely different dashboards, or the same one with different variable values (e.g. two environments, two time periods).' },
+    { selector: '#cmp-run-btn', title: 'Runs in your browser, not a server', text: 'The two datasets are fetched from Grafana normally, but the comparison itself is done by an LLM running fully client-side via WebGPU. No dashboard data is sent to any AI service.' }
+  ];
+</script>
+<script type="module" src="/js/compare.js"></script>
+<% } %>
+<%- include('partials/footer') %>
